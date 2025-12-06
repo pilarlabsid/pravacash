@@ -1,0 +1,32 @@
+{
+  "name": "cashflow-dashboard",
+  "version": "1.0.0",
+  "description": "Realtime cashflow dashboard with Node.js backend",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "client": "npm run dev --prefix client",
+    "client:build": "npm run build --prefix client",
+    "client:preview": "npm run preview --prefix client",
+    "build": "npm run build --prefix client"
+  },
+  "keywords": [
+    "cashflow",
+    "express",
+    "sqlite",
+    "dashboard"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "morgan": "^1.10.0",
+    "socket.io": "^4.8.1",
+    "sql.js": "^1.11.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  }
+}

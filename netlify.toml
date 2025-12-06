@@ -1,0 +1,14 @@
+[build]
+  base = "client"
+  publish = "dist"
+  command = "npm install && npm run build"
+
+[build.environment]
+  NODE_VERSION = "18"
+
+# Redirect semua request ke index.html untuk React Router (jika digunakan)
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+

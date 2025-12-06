@@ -1,0 +1,23 @@
+node_modules
+client/node_modules
+client/dist
+data/*.db
+.DS_Store
+dist
+*.log
+
+# Environment variables
+.env
+.env.local
+.env.production
+.env.development
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS
+Thumbs.db
+
