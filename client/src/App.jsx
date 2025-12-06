@@ -81,10 +81,11 @@ function App() {
 
   // Helper untuk mendapatkan base API URL
   const getApiUrl = () => {
-    // Gunakan environment variable jika tersedia, jika tidak gunakan relative path
+    // Gunakan environment variable jika tersedia
     const apiUrl = import.meta.env.VITE_API_URL;
     if (apiUrl) {
-      return apiUrl;
+      // Pastikan tidak ada trailing slash
+      return apiUrl.replace(/\/$/, '');
     }
     // Fallback: di development gunakan proxy, di production gunakan relative path
     return import.meta.env.DEV ? "" : window.location.origin;
@@ -96,7 +97,23 @@ function App() {
     }
     try {
       const apiBase = getApiUrl();
-      const response = await fetch(`${apiBase}/api/transactions`);
+      const apiUrl = `${apiBase}/api/transactions`;
+      
+      // Debug: log API URL di development
+      if (import.meta.env.DEV) {
+        console.log('🔗 Fetching from:', apiUrl);
+      }
+      
+      const response = await fetch(apiUrl);
+      
+      // Check if response is HTML (error case)
+      const contentType = response.headers.get('content-type');
+      if (contentType && !contentType.includes('application/json')) {
+        const text = await response.text();
+        console.error('❌ Received non-JSON response:', text.substring(0, 200));
+        throw new Error(`API tidak merespons dengan benar. Pastikan VITE_API_URL sudah di-set di Netlify.`);
+      }
+      
       if (!response.ok) {
         const body = await safeJson(response);
         throw new Error(body.message || "Gagal memuat data.");
