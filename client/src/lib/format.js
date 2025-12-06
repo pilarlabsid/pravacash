@@ -10,12 +10,26 @@ export const formatDate = (dateString) => {
   const date = new Date(dateString);
   if (Number.isNaN(date.getTime())) return "-";
 
+  // Format menggunakan timezone GMT+9 (Asia/Tokyo)
   return date.toLocaleDateString("id-ID", {
     day: "2-digit",
     month: "short",
     year: "numeric",
+    timeZone: "Asia/Tokyo", // GMT+9 timezone
   });
 };
 
-export const getToday = () => new Date().toISOString().slice(0, 10);
+export const getToday = () => {
+  // Get today's date in GMT+9 (Asia/Tokyo)
+  const now = new Date();
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Tokyo", // GMT+9
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+  
+  // Format sebagai YYYY-MM-DD
+  return formatter.format(now);
+};
 
