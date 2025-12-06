@@ -438,7 +438,7 @@ const runningEntries = useMemo(() => {
     });
     const workbook = XLSXUtils.book_new();
     XLSXUtils.book_append_sheet(workbook, worksheet, "Transaksi");
-    const filename = `cashflow-transactions-${new Date()
+    const filename = `pilar-cash-transactions-${new Date()
       .toISOString()
       .slice(0, 10)}.xlsx`;
     writeXLSXFile(workbook, filename);
@@ -570,7 +570,7 @@ const runningEntries = useMemo(() => {
         <header className="flex flex-col gap-5 rounded-3xl bg-gradient-to-r from-slate-900 via-indigo-900 to-slate-800 px-6 py-8 text-white shadow-soft sm:px-8">
           <div className="text-center sm:text-left">
             <p className="text-xs uppercase tracking-[0.4em] text-indigo-200">
-              Realtime Cashflow
+              Pilar Cash
             </p>
           </div>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
