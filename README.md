@@ -1,193 +1,177 @@
-# Cashflow Dashboard (Node + React + Tailwind)
+# Pilar Cash - Cashflow Management Dashboard
 
-Dashboard arus kas dengan backend **Node.js + Express + SQLite** serta frontend **React (Vite) + Tailwind CSS**. Data disimpan di file `data/cashflow.db`, sedangkan UI menampilkan kartu ringkasan, form modern, dan tabel responsif gaya Tailwind template.
+Dashboard arus kas modern dengan backend **Node.js + Express + SQLite** serta frontend **React (Vite) + Tailwind CSS**. Dilengkapi dengan **WebSocket (Socket.IO)** untuk real-time update otomatis di semua client yang terhubung.
 
-## Fitur
+## ✨ Fitur
 
-- Input transaksi lengkap dengan validasi sisi server & client.
-- Node API menyimpan ke SQLite (`sql.js`) dan menyediakan endpoint JSON.
-- Vite React UI dengan Tailwind: summary cards, running balance table, kartu mobile view, toast feedback, dan tombol bersihkan data.
-- Dev server terpisah (Vite) dengan proxy ke backend, build hasilnya otomatis disajikan oleh Express.
+- 📊 **Dashboard Real-time**: Auto-update otomatis menggunakan WebSocket ketika ada perubahan data
+- 💰 **Manajemen Transaksi**: Input, edit, dan hapus transaksi dengan validasi lengkap
+- 🔒 **Keamanan PIN**: Proteksi dengan PIN 4-digit untuk semua operasi penting
+- 📱 **Responsive Design**: UI modern dan responsif dengan Tailwind CSS
+- 📈 **Running Balance**: Perhitungan saldo berjalan otomatis
+- 📥 **Export Excel**: Unduh data transaksi dalam format Excel
+- 🎨 **Modern UI**: Kartu statistik, form modern, dan tabel responsif
 
-## Struktur Proyek
+## 🏗️ Struktur Proyek
 
 ```
 .
 ├── client/              # Vite + React + Tailwind app
 │   ├── src/
+│   │   ├── App.jsx      # Komponen utama dengan WebSocket
+│   │   └── lib/
 │   └── package.json
-├── data/                # file SQLite (cashflow.db)
-├── src/database.js      # helper SQLite (create/read/write using sql.js)
-├── server.js            # Express API + static file server
-└── package.json         # backend scripts & deps
+├── data/                # SQLite database (cashflow.db)
+├── src/
+│   └── database.js      # Helper SQLite (create/read/update/delete)
+├── server.js            # Express API + Socket.IO + static file server
+├── package.json         # Backend dependencies
+└── netlify.toml         # Konfigurasi Netlify
 ```
 
-## Menjalankan Secara Lokal
+## 🚀 Menjalankan Secara Lokal
 
-1. Pastikan Node.js ≥18 terpasang.
-2. Instal dependensi backend:
+### Prasyarat
+- Node.js ≥18
+
+### Instalasi
+
+1. **Install dependensi backend:**
    ```bash
    npm install
    ```
-3. Instal dependensi frontend:
+
+2. **Install dependensi frontend:**
    ```bash
    cd client && npm install
    ```
-4. Jalankan mode pengembangan (dua terminal):
+
+3. **Jalankan mode pengembangan** (dua terminal):
    ```bash
-   # terminal 1 -> backend
+   # Terminal 1 -> Backend
    npm run dev
 
-   # terminal 2 -> frontend
+   # Terminal 2 -> Frontend
    npm run client
    ```
-   - Backend otomatis berjalan di `http://localhost:4000`.
-   - Frontend (Vite) berjalan di `http://localhost:6001` dan mem-proxy request `/api` ke backend.
-5. Build produksi:
+   - Backend: `http://localhost:4000`
+   - Frontend: `http://localhost:6001` (proxy ke backend)
+
+4. **Build produksi:**
    ```bash
    npm run client:build
-   npm start        # menjalankan Express + hasil build React
+   npm start
    ```
 
-Semua data tersimpan di `data/cashflow.db`. File ini otomatis dibuat jika belum ada.
+Database SQLite akan otomatis dibuat di `data/cashflow.db` jika belum ada.
 
-## Endpoint API
+## 📡 API Endpoints
 
-| Method | Path                  | Deskripsi                         |
-| ------ | --------------------- | --------------------------------- |
-| GET    | `/api/transactions`   | Ambil semua transaksi (urut tanggal) |
-| POST   | `/api/transactions`   | Tambah transaksi baru             |
-| DELETE | `/api/transactions/:id` | Hapus satu transaksi             |
-| DELETE | `/api/transactions`   | Hapus semua transaksi             |
+| Method | Path                      | Deskripsi                           |
+| ------ | ------------------------- | ----------------------------------- |
+| GET    | `/api/transactions`       | Ambil semua transaksi               |
+| POST   | `/api/transactions`       | Tambah transaksi baru               |
+| PUT    | `/api/transactions/:id`   | Update transaksi                    |
+| DELETE | `/api/transactions/:id`   | Hapus satu transaksi                |
+| DELETE | `/api/transactions`       | Hapus semua transaksi               |
+| GET    | `/health`                 | Health check endpoint               |
 
-Payload `POST /api/transactions`:
+### Contoh Request
 
+**POST /api/transactions:**
 ```json
 {
   "description": "Warung Biru",
   "type": "expense",
   "amount": 233000,
-  "date": "2025-12-04"
+  "date": "2025-01-15"
 }
 ```
 
-## Deploy
+## 🔌 WebSocket / Real-time Updates
 
-### Deploy ke GitHub
+Aplikasi menggunakan **Socket.IO** untuk real-time update:
 
-1. **Inisialisasi Git repository** (jika belum):
-   ```bash
-   git init
-   git add .
-   git commit -m "Initial commit"
-   ```
+- Ketika ada perubahan data (create/update/delete), semua client yang terhubung akan otomatis menerima update
+- Tidak perlu refresh halaman untuk melihat perubahan terbaru
+- Support multiple clients secara bersamaan
 
-2. **Buat repository baru di GitHub** dan push:
-   ```bash
-   git remote add origin https://github.com/pilarlabsid/cashflow.git
-   git branch -M main
-   git push -u origin main
-   ```
+**Event yang dikirim server:**
+- `transactions:updated` - Dikirim ketika ada perubahan data
 
-### Deploy Frontend ke Netlify
+## 🌐 Deployment
 
-1. **Login ke Netlify** dan buat site baru dari GitHub repository Anda.
+### Arsitektur Deployment
 
-2. **Konfigurasi Build Settings**:
-   - **Base directory**: `client`
-   - **Build command**: `npm install && npm run build`
-   - **Publish directory**: `client/dist`
+- **Frontend**: Netlify (static hosting)
+- **Backend**: Railway (Node.js hosting)
 
-3. **Environment Variables** (di Netlify Dashboard → Site settings → Environment variables):
-   - Tambahkan `VITE_API_URL` dengan nilai URL backend Anda (contoh: `https://your-backend.herokuapp.com`)
+### Quick Start Deployment
 
-4. **Deploy**: Netlify akan otomatis build dan deploy setiap kali Anda push ke GitHub.
+1. **Deploy Backend ke Railway:**
+   - Lihat panduan lengkap: [RAILWAY_SETUP.md](./RAILWAY_SETUP.md)
+   - Build Command: `npm install`
+   - Start Command: `npm start`
+   - **PENTING**: Tambahkan Volume untuk folder `data/` (mount path: `/app/data`)
 
-### Deploy Backend
+2. **Deploy Frontend ke Netlify:**
+   - Lihat panduan lengkap: [DEPLOYMENT.md](./DEPLOYMENT.md)
+   - Base directory: `client`
+   - Build command: `npm install && npm run build`
+   - Publish directory: `client/dist`
+   - **PENTING**: Set environment variable `VITE_API_URL` dengan URL backend Railway
 
-Backend perlu di-deploy ke layanan yang mendukung Node.js. Pilihan populer:
+3. **Konfigurasi WebSocket:**
+   - Lihat panduan: [WEBSOCKET_FIX.md](./WEBSOCKET_FIX.md)
+   - Pastikan `VITE_API_URL` sudah di-set dengan benar di Netlify
+   - WebSocket akan otomatis menggunakan polling sebagai fallback di Netlify
 
-#### Option 1: Render.com (Recommended)
+### Dokumentasi Deployment
 
-**Langkah-langkah:**
+- 📘 [DEPLOYMENT.md](./DEPLOYMENT.md) - Panduan deployment umum
+- 🚂 [RAILWAY_SETUP.md](./RAILWAY_SETUP.md) - Setup backend di Railway
+- 🌐 [NETLIFY_FIX.md](./NETLIFY_FIX.md) - Fix masalah di Netlify
+- 🔌 [WEBSOCKET_FIX.md](./WEBSOCKET_FIX.md) - Fix WebSocket auto-update
+- 🔧 [TROUBLESHOOTING.md](./TROUBLESHOOTING.md) - Troubleshooting guide
 
-1. **Buat akun di [Render.com](https://render.com)**
-   - Login dengan GitHub account Anda
+## ⚙️ Environment Variables
 
-2. **Buat Web Service baru:**
-   - Klik "New +" → "Web Service"
-   - Pilih repository: `pilarlabsid/cashflow`
-   - Klik "Connect"
+### Frontend (Netlify)
 
-3. **Isi Settingan berikut:**
+| Variable      | Deskripsi                          | Contoh                                    |
+| ------------- | ---------------------------------- | ----------------------------------------- |
+| `VITE_API_URL` | URL backend Railway (tanpa trailing slash) | `https://cashflow-backend.up.railway.app` |
 
-   **Basic Settings:**
-   - **Name**: `cashflow-backend` (atau nama lain yang Anda inginkan)
-   - **Region**: Pilih region terdekat (misal: Singapore)
-   - **Branch**: `main`
-   - **Root Directory**: (kosongkan, biarkan default)
-   - **Environment**: `Node`
-   - **Build Command**: `npm install`
-   - **Start Command**: `npm start`
+### Backend (Railway)
 
-   **Advanced Settings:**
-   - **Auto-Deploy**: `Yes` (otomatis deploy saat push ke GitHub)
+| Variable  | Deskripsi              | Default |
+| --------- | ---------------------- | ------- |
+| `PORT`    | Port server            | 4000    |
+| `NODE_ENV`| Environment mode       | -       |
 
-   **Environment Variables:**
-   - Klik "Add Environment Variable"
-   - Tambahkan:
-     - **Key**: `NODE_ENV`
-     - **Value**: `production`
-   - **Key**: `PORT`
-   - **Value**: (biarkan kosong, Render akan set otomatis)
+## 🔐 Keamanan
 
-4. **Setup Persistent Disk untuk Database:**
-   - Scroll ke bagian "Disk"
-   - Klik "Add Disk"
-   - **Name**: `cashflow-data`
-   - **Mount Path**: `/opt/render/project/data`
-   - **Size**: `1 GB` (cukup untuk database kecil)
-   - **Note**: Ini penting agar database tidak hilang saat restart!
+- **PIN Protection**: Semua operasi penting (create, update, delete, export) memerlukan PIN 4-digit
+- **Default PIN**: `6745` (dapat diubah di `client/src/App.jsx`)
+- **CORS**: Backend dikonfigurasi untuk menerima request dari semua origin (untuk production, pertimbangkan membatasi ke domain Netlify)
 
-5. **Pilih Plan:**
-   - **Free**: Gratis (dengan beberapa limitasi)
-   - **Starter**: $7/bulan (lebih stabil)
+## 📝 Catatan Penting
 
-6. **Klik "Create Web Service"**
-   - Render akan mulai build dan deploy
-   - Tunggu hingga selesai (sekitar 2-5 menit)
+- **Database Persistence**: Pastikan folder `data/` menggunakan persistent storage/volume di Railway agar database tidak hilang saat restart
+- **WebSocket di Netlify**: Netlify tidak support WebSocket native, jadi Socket.IO akan menggunakan polling sebagai fallback (tetap memberikan real-time update)
+- **Backup**: Disarankan untuk melakukan backup berkala untuk file `data/cashflow.db`
+- **Tidak ada data bawaan**: Semua transaksi berasal dari input user
 
-7. **Dapatkan URL Backend:**
-   - Setelah deploy selesai, Anda akan mendapat URL seperti: `https://cashflow-backend.onrender.com`
-   - **Copy URL ini** untuk digunakan di Netlify environment variable
+## 🛠️ Teknologi yang Digunakan
 
-**Catatan Penting:**
-- Free tier di Render akan "sleep" setelah 15 menit tidak aktif (wake up butuh ~30 detik)
-- Untuk production, pertimbangkan upgrade ke Starter plan ($7/bulan)
-- Database akan tersimpan di persistent disk dan tidak akan hilang
+- **Backend**: Node.js, Express, Socket.IO, SQLite (sql.js)
+- **Frontend**: React, Vite, Tailwind CSS, Socket.IO Client
+- **Deployment**: Netlify (frontend), Railway (backend)
 
-#### Option 2: Railway.app
-1. Buat akun di [Railway.app](https://railway.app)
-2. Deploy dari GitHub repository
-3. Railway otomatis mendeteksi Node.js dan menjalankan `npm start`
-4. Tambahkan **Volume** untuk folder `data/` agar database persisten
+## 📄 License
 
-#### Option 3: Fly.io
-1. Install Fly CLI: `curl -L https://fly.io/install.sh | sh`
-2. Login: `fly auth login`
-3. Deploy: `fly launch`
-4. Tambahkan volume untuk database: `fly volumes create data`
+MIT
 
-### Catatan Penting
+## 👥 Credits
 
-- **Database Persistence**: Pastikan folder `data/` menggunakan persistent storage/volume agar `cashflow.db` tidak hilang saat restart.
-- **Environment Variables**: Set `VITE_API_URL` di Netlify dengan URL backend yang sudah di-deploy.
-- **CORS**: Backend sudah dikonfigurasi untuk menerima request dari semua origin. Untuk production, pertimbangkan membatasi CORS ke domain Netlify Anda.
-- **Backup**: Jadwalkan backup berkala untuk file `data/cashflow.db`.
-
-## Catatan
-
-- Tidak ada data bawaan; semua transaksi berasal dari input user.
-- Jika ingin mengganti database (MySQL, Postgres, dsb), cukup implementasikan ulang helper pada `src/database.js`.
-- UI dibangun dengan Tailwind; warna dan layout dapat disesuaikan melalui `client/src/index.css`, `tailwind.config.js`, dan komponen React di `client/src/App.jsx`.
-
+Developed by Pilar Labs
