@@ -148,7 +148,8 @@ function App() {
       // Gunakan environment variable jika tersedia
       const apiUrl = import.meta.env.VITE_API_URL;
       if (apiUrl) {
-        return apiUrl;
+        // Pastikan tidak ada trailing slash
+        return apiUrl.replace(/\/$/, '');
       }
       // Fallback: di development connect ke localhost, di production gunakan origin
       if (import.meta.env.DEV) {
@@ -157,17 +158,72 @@ function App() {
       return window.location.origin;
     };
 
+    const socketUrl = getSocketUrl();
+    
+    // Debug logging (hanya di development)
+    if (import.meta.env.DEV) {
+      console.log('🔌 Connecting to WebSocket:', socketUrl);
+    }
+
     // Connect ke WebSocket server
-    const socket = io(getSocketUrl(), {
-      transports: ["websocket", "polling"],
+    // Prioritas polling dulu karena Netlify tidak support WebSocket native
+    // Socket.IO akan otomatis upgrade ke WebSocket jika tersedia
+    const socket = io(socketUrl, {
+      transports: ["polling", "websocket"], // Prioritaskan polling untuk Netlify
       autoConnect: true,
       reconnection: true,
       reconnectionDelay: 1000,
-      reconnectionAttempts: 5,
+      reconnectionDelayMax: 5000,
+      reconnectionAttempts: Infinity, // Retry terus menerus
+      timeout: 20000,
+      forceNew: false,
+    });
+
+    // Event listeners untuk debugging dan monitoring
+    socket.on("connect", () => {
+      if (import.meta.env.DEV) {
+        console.log('✅ WebSocket connected:', socket.id);
+        console.log('📡 Transport:', socket.io.engine.transport.name);
+      }
+    });
+
+    socket.on("disconnect", (reason) => {
+      if (import.meta.env.DEV) {
+        console.log('❌ WebSocket disconnected:', reason);
+      }
+    });
+
+    socket.on("connect_error", (error) => {
+      console.error('❌ WebSocket connection error:', error.message);
+      // Jika koneksi gagal, tetap gunakan polling untuk fetch data
+      // fetchEntries akan tetap berjalan untuk fallback
+    });
+
+    socket.on("reconnect", (attemptNumber) => {
+      if (import.meta.env.DEV) {
+        console.log('🔄 WebSocket reconnected after', attemptNumber, 'attempts');
+      }
+    });
+
+    socket.on("reconnect_attempt", () => {
+      if (import.meta.env.DEV) {
+        console.log('🔄 Attempting to reconnect WebSocket...');
+      }
+    });
+
+    socket.on("reconnect_error", (error) => {
+      console.error('❌ WebSocket reconnection error:', error.message);
+    });
+
+    socket.on("reconnect_failed", () => {
+      console.error('❌ WebSocket reconnection failed. Using polling fallback.');
     });
 
     // Listen untuk update transaksi dari server
     socket.on("transactions:updated", (transactions) => {
+      if (import.meta.env.DEV) {
+        console.log('📨 Received transactions update via WebSocket');
+      }
       // Update data tanpa loading indicator
       setEntries(
         (transactions ?? []).map((entry) => ({
