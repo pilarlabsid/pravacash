@@ -40,17 +40,40 @@ npm start
 | `NODE_ENV` | `production` | Environment mode |
 | `PORT` | *(kosongkan)* | Railway akan set otomatis |
 
-## Volume/Persistent Storage
+## Database Configuration
 
-⚠️ **PENTING**: Tambahkan volume untuk folder `data/` agar database tidak hilang:
+⚠️ **PENTING**: Aplikasi menggunakan **PostgreSQL**, bukan SQLite. Anda perlu setup PostgreSQL database terpisah.
 
-1. Di Railway dashboard, buka service Anda
-2. Klik tab **"Volumes"**
-3. Klik **"Add Volume"**
-4. Isi:
-   - **Mount Path**: `/app/data`
-   - **Size**: `1 GB` (cukup untuk database kecil)
-5. Save
+### Opsi 1: Railway PostgreSQL (Recommended)
+
+1. Di Railway project, klik **"New"** → **"Database"** → **"Add PostgreSQL"**
+2. Railway akan otomatis membuat database PostgreSQL
+3. Copy `DATABASE_URL` dari database service
+4. Set sebagai environment variable di backend service:
+   - **Key**: `DATABASE_URL`
+   - **Value**: (paste connection string dari PostgreSQL service)
+
+### Opsi 2: Supabase / Neon / Self-Hosted
+
+Lihat panduan lengkap: [POSTGRESQL_DEPLOYMENT.md](./POSTGRESQL_DEPLOYMENT.md)
+
+### Environment Variables untuk Database
+
+Set salah satu format berikut di backend service:
+
+**Format 1: DATABASE_URL (Recommended)**
+```
+DATABASE_URL=postgresql://user:password@host:port/database
+```
+
+**Format 2: Format Terpisah**
+```
+DB_HOST=hostname
+DB_USER=postgres
+DB_PASSWORD=password
+DB_NAME=database_name
+DB_PORT=5432
+```
 
 ## Catatan
 
@@ -65,7 +88,9 @@ npm start
 - Pastikan Build Command adalah `npm install` saja, BUKAN `npm run build`
 - Railway hanya perlu install dependencies backend, tidak perlu build frontend
 
-### Database hilang setelah restart
-- Pastikan volume sudah di-setup dengan mount path `/app/data`
-- Cek di Railway dashboard → Volumes
+### Database Connection Error
+- Pastikan PostgreSQL database sudah dibuat (Railway/Supabase/Neon)
+- Pastikan `DATABASE_URL` atau `DB_*` variables sudah di-set di Railway
+- Cek logs untuk error connection: `Database tidak ditemukan` atau `Gagal autentikasi`
+- Lihat panduan lengkap: [POSTGRESQL_DEPLOYMENT.md](./POSTGRESQL_DEPLOYMENT.md)
 

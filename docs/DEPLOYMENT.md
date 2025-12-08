@@ -29,10 +29,13 @@ Aplikasi ini menggunakan arsitektur terpisah:
    - **Build Command**: `npm install`
    - **Start Command**: `npm start`
    - **Root Directory**: *(kosongkan)*
-5. **PENTING**: Tambahkan Volume untuk folder `data/`:
-   - Klik tab **Volumes** → **Add Volume**
-   - **Mount Path**: `/app/data`
-   - **Size**: `1 GB`
+5. **PENTING**: Setup PostgreSQL Database:
+   - Klik **"New"** → **"Database"** → **"Add PostgreSQL"**
+   - Copy `DATABASE_URL` dari database service
+   - Di backend service, tambahkan environment variable:
+     - **Key**: `DATABASE_URL`
+     - **Value**: (paste connection string)
+   - Lihat panduan lengkap: [POSTGRESQL_DEPLOYMENT.md](./POSTGRESQL_DEPLOYMENT.md)
 6. Tunggu deploy selesai
 7. **Copy URL backend** (contoh: `https://cashflow-backend.up.railway.app`)
 
@@ -122,7 +125,7 @@ File `netlify.toml` sudah dikonfigurasi dengan benar:
 
 - **Build Command**: `npm install` (hanya install dependencies backend)
 - **Start Command**: `npm start` (menjalankan server.js)
-- **Volume**: Mount path `/app/data` untuk persistent database
+- **Database**: PostgreSQL (setup terpisah, lihat [POSTGRESQL_DEPLOYMENT.md](./POSTGRESQL_DEPLOYMENT.md))
 
 ## ⚠️ Troubleshooting
 
@@ -137,9 +140,11 @@ File `netlify.toml` sudah dikonfigurasi dengan benar:
    - Lihat panduan: [WEBSOCKET_FIX.md](./WEBSOCKET_FIX.md)
    - Pastikan `VITE_API_URL` sudah di-set dengan benar
 
-3. **Database hilang setelah restart:**
-   - Pastikan Volume sudah di-setup di Railway
-   - Mount path harus: `/app/data`
+3. **Database connection error:**
+   - Pastikan PostgreSQL database sudah dibuat (Railway/Supabase/Neon)
+   - Pastikan `DATABASE_URL` sudah di-set di Railway backend service
+   - Cek logs untuk error connection
+   - Lihat panduan: [POSTGRESQL_DEPLOYMENT.md](./POSTGRESQL_DEPLOYMENT.md)
 
 4. **Build error di Netlify:**
    - Pastikan `netlify.toml` sudah benar
@@ -156,8 +161,9 @@ File `netlify.toml` sudah dikonfigurasi dengan benar:
 Sebelum deploy, pastikan:
 
 - [ ] Repository sudah di-push ke GitHub
+- [ ] PostgreSQL database sudah dibuat (Railway/Supabase/Neon)
+- [ ] `DATABASE_URL` sudah di-set di Railway backend service
 - [ ] Backend sudah di-deploy ke Railway
-- [ ] Volume sudah di-setup di Railway (mount path: `/app/data`)
 - [ ] Frontend sudah di-deploy ke Netlify
 - [ ] Environment variable `VITE_API_URL` sudah di-set di Netlify
 - [ ] Sudah rebuild dengan "Clear cache and deploy site"
@@ -168,6 +174,7 @@ Sebelum deploy, pastikan:
 ## 🔗 Link Dokumentasi Terkait
 
 - [RAILWAY_SETUP.md](./RAILWAY_SETUP.md) - Setup backend di Railway
+- [POSTGRESQL_DEPLOYMENT.md](./POSTGRESQL_DEPLOYMENT.md) - Panduan deploy PostgreSQL
 - [NETLIFY_FIX.md](./NETLIFY_FIX.md) - Fix masalah di Netlify
 - [WEBSOCKET_FIX.md](./WEBSOCKET_FIX.md) - Fix WebSocket auto-update
 - [TROUBLESHOOTING.md](./TROUBLESHOOTING.md) - Troubleshooting guide
@@ -178,4 +185,4 @@ Sebelum deploy, pastikan:
 2. **Trailing Slash**: Jangan ada trailing slash di akhir URL `VITE_API_URL`
 3. **Clear Cache**: Setelah set environment variable, selalu rebuild dengan "Clear cache and deploy site"
 4. **Monitoring**: Monitor logs di Railway dan Netlify untuk mendeteksi error lebih cepat
-5. **Backup**: Lakukan backup berkala untuk database di folder `data/`
+5. **Backup**: Managed PostgreSQL (Railway/Supabase/Neon) sudah include auto-backup
