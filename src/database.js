@@ -1,3 +1,6 @@
+// Load environment variables first (before creating Pool)
+require("dotenv").config();
+
 const { Pool } = require("pg");
 const crypto = require("crypto");
 const dbConfig = require("./db.config");
@@ -33,13 +36,20 @@ const poolConfig = process.env.DATABASE_URL
     };
 
 // Debug: Log connection method (hide sensitive data)
+// Log immediately to see what's being used
+console.log('\n📊 Database Configuration:');
+console.log(`   NODE_ENV: ${process.env.NODE_ENV || 'not set'}`);
 if (process.env.DATABASE_URL) {
   const dbUrl = process.env.DATABASE_URL;
   const maskedUrl = dbUrl.replace(/:[^:@]+@/, ':****@'); // Mask password
-  console.log(`🔗 Using DATABASE_URL: ${maskedUrl}`);
+  console.log(`   🔗 Using DATABASE_URL: ${maskedUrl}`);
+  console.log(`   ✅ DATABASE_URL is SET`);
 } else {
-  console.log(`🔗 Using config object: ${config.host}:${config.port}/${config.database}`);
+  console.log(`   ⚠️  DATABASE_URL is NOT SET`);
+  console.log(`   🔗 Using config object: ${config.host}:${config.port}/${config.database}`);
+  console.log(`   💡 Pastikan DATABASE_URL di-set di Railway Variables!`);
 }
+console.log('');
 
 const pool = new Pool(poolConfig);
 
