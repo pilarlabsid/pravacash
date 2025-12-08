@@ -32,6 +32,15 @@ const poolConfig = process.env.DATABASE_URL
       ssl: false,
     };
 
+// Debug: Log connection method (hide sensitive data)
+if (process.env.DATABASE_URL) {
+  const dbUrl = process.env.DATABASE_URL;
+  const maskedUrl = dbUrl.replace(/:[^:@]+@/, ':****@'); // Mask password
+  console.log(`🔗 Using DATABASE_URL: ${maskedUrl}`);
+} else {
+  console.log(`🔗 Using config object: ${config.host}:${config.port}/${config.database}`);
+}
+
 const pool = new Pool(poolConfig);
 
 // Test connection
@@ -42,9 +51,13 @@ pool.on("error", (err) => {
 
 async function initDb() {
   try {
+    // Debug: Check environment
+    console.log(`🌍 NODE_ENV: ${process.env.NODE_ENV || 'not set'}`);
+    console.log(`📦 DATABASE_URL: ${process.env.DATABASE_URL ? 'SET' : 'NOT SET'}`);
+    
     // Test connection
     await pool.query("SELECT NOW()");
-    console.log("Connected to PostgreSQL database");
+    console.log("✅ Connected to PostgreSQL database");
 
     // Create tables if not exist
     await createSchema();
@@ -63,8 +76,22 @@ async function initDb() {
       console.error(" Pastikan username dan password di DATABASE_URL benar.\n");
     } else if (error.code === "ECONNREFUSED") {
       // Connection refused
-      console.error("\n Tidak bisa connect ke PostgreSQL!");
-      console.error(" Pastikan PostgreSQL service berjalan:");
+      console.error("\n❌ Tidak bisa connect ke PostgreSQL!");
+      
+      // Check if DATABASE_URL is set
+      if (!process.env.DATABASE_URL) {
+        console.error("⚠️  DATABASE_URL tidak ditemukan di environment variables!");
+        console.error("💡 Untuk Railway/production, pastikan DATABASE_URL sudah di-set:");
+        console.error("   1. Buka Railway dashboard → Backend service");
+        console.error("   2. Klik tab 'Variables'");
+        console.error("   3. Tambahkan variable: DATABASE_URL");
+        console.error("   4. Value: connection string dari PostgreSQL service\n");
+      } else {
+        console.error("⚠️  DATABASE_URL sudah di-set tapi masih error.");
+        console.error("💡 Pastikan connection string benar dan database service masih aktif.\n");
+      }
+      
+      console.error("📝 Untuk development lokal:");
       console.error("   macOS: brew services start postgresql");
       console.error("   Linux: sudo systemctl start postgresql\n");
     } else {
