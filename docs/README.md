@@ -4,6 +4,10 @@ Selamat datang di dokumentasi Prava Cash. Dokumentasi ini berisi panduan lengkap
 
 ## 📚 Daftar Dokumentasi
 
+### 📊 Diagram & Flowchart
+
+- **[FLOWCHART.md](./FLOWCHART.md)** - Flowchart lengkap aplikasi (alur transaksi, WebSocket, deployment, dll)
+
 ### 🚀 Deployment
 
 - **[DEPLOYMENT.md](./DEPLOYMENT.md)** - Panduan deployment lengkap (Netlify + Railway)
