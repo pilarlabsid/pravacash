@@ -100,6 +100,9 @@ async function login({ email, password }) {
   // Generate token
   const token = generateToken(user);
 
+  // Update last login (called from server.js after login)
+  // Note: This is handled in server.js to avoid circular dependency
+
   return {
     user: {
       id: user.id,

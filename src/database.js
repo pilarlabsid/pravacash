@@ -97,6 +97,18 @@ async function createSchema() {
                      WHERE table_name='users' AND column_name='role') THEN
         ALTER TABLE users ADD COLUMN role VARCHAR(20) DEFAULT 'user' CHECK (role IN ('user', 'admin'));
       END IF;
+      IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                     WHERE table_name='users' AND column_name='last_login_at') THEN
+        ALTER TABLE users ADD COLUMN last_login_at TIMESTAMP DEFAULT NULL;
+      END IF;
+      IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                     WHERE table_name='users' AND column_name='is_active') THEN
+        ALTER TABLE users ADD COLUMN is_active BOOLEAN DEFAULT true;
+      END IF;
+      IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                     WHERE table_name='users' AND column_name='login_count') THEN
+        ALTER TABLE users ADD COLUMN login_count INTEGER DEFAULT 0;
+      END IF;
     END $$;
   `);
 
@@ -142,7 +154,7 @@ async function createUser({ email, passwordHash, name }) {
 
 async function getUserByEmail(email) {
   const result = await pool.query(
-    `SELECT id, email, password_hash, name, role, created_at 
+    `SELECT id, email, password_hash, name, role, last_login_at, is_active, login_count, created_at 
      FROM users 
      WHERE email = $1`,
     [email.toLowerCase().trim()]
@@ -152,12 +164,24 @@ async function getUserByEmail(email) {
 
 async function getUserById(id) {
   const result = await pool.query(
-    `SELECT id, email, name, pin, pin_enabled, role, created_at 
+    `SELECT id, email, name, pin, pin_enabled, role, last_login_at, is_active, login_count, created_at 
      FROM users 
      WHERE id = $1`,
     [id]
   );
   return result.rows[0] || null;
+}
+
+// Update last login timestamp
+async function updateLastLogin(userId) {
+  await pool.query(
+    `UPDATE users 
+     SET last_login_at = CURRENT_TIMESTAMP, 
+         login_count = COALESCE(login_count, 0) + 1,
+         updated_at = CURRENT_TIMESTAMP
+     WHERE id = $1`,
+    [userId]
+  );
 }
 
 // Get user settings (without sensitive data)
@@ -323,8 +347,10 @@ async function getTransactionById(id, userId) {
 // Admin functions
 async function getAllUsers() {
   const result = await pool.query(
-    `SELECT id, email, name, role, pin_enabled, created_at,
-     (SELECT COUNT(*) FROM transactions WHERE user_id = users.id) as transaction_count
+    `SELECT id, email, name, role, pin_enabled, last_login_at, is_active, login_count, created_at,
+     (SELECT COUNT(*) FROM transactions WHERE user_id = users.id) as transaction_count,
+     (SELECT COALESCE(SUM(amount), 0) FROM transactions WHERE user_id = users.id AND type = 'income') as total_income,
+     (SELECT COALESCE(SUM(amount), 0) FROM transactions WHERE user_id = users.id AND type = 'expense') as total_expense
      FROM users 
      ORDER BY created_at DESC`
   );
@@ -347,36 +373,156 @@ async function getAdminStats() {
   const usersResult = await pool.query(`SELECT COUNT(*) as count FROM users`);
   const totalUsers = parseInt(usersResult.rows[0].count);
 
+  // Active users (login dalam 7 hari terakhir)
+  const activeUsersResult = await pool.query(
+    `SELECT COUNT(*) as count FROM users 
+     WHERE last_login_at >= CURRENT_DATE - INTERVAL '7 days' OR last_login_at IS NULL`
+  );
+  const activeUsers = parseInt(activeUsersResult.rows[0].count);
+
+  // New users (hari ini, minggu ini, bulan ini)
+  const newUsersToday = await pool.query(
+    `SELECT COUNT(*) as count FROM users 
+     WHERE created_at::date = CURRENT_DATE`
+  );
+  const newUsersThisWeek = await pool.query(
+    `SELECT COUNT(*) as count FROM users 
+     WHERE created_at >= CURRENT_DATE - INTERVAL '7 days'`
+  );
+  const newUsersThisMonth = await pool.query(
+    `SELECT COUNT(*) as count FROM users 
+     WHERE created_at >= DATE_TRUNC('month', CURRENT_DATE)`
+  );
+
   // Total transactions
   const transResult = await pool.query(`SELECT COUNT(*) as count FROM transactions`);
   const totalTransactions = parseInt(transResult.rows[0].count);
 
-  // Total income
+  // New transactions (hari ini, minggu ini, bulan ini)
+  const newTransToday = await pool.query(
+    `SELECT COUNT(*) as count FROM transactions 
+     WHERE created_at::date = CURRENT_DATE`
+  );
+  const newTransThisWeek = await pool.query(
+    `SELECT COUNT(*) as count FROM transactions 
+     WHERE created_at >= CURRENT_DATE - INTERVAL '7 days'`
+  );
+  const newTransThisMonth = await pool.query(
+    `SELECT COUNT(*) as count FROM transactions 
+     WHERE created_at >= DATE_TRUNC('month', CURRENT_DATE)`
+  );
+
+  // Transactions by type (count only, not amount - untuk monitoring volume)
+  const typeResult = await pool.query(
+    `SELECT type, COUNT(*) as count
+     FROM transactions
+     GROUP BY type`
+  );
+
+  // Average transaction value (untuk monitoring, bukan financial)
+  const avgTransResult = await pool.query(
+    `SELECT COALESCE(AVG(amount), 0) as avg FROM transactions`
+  );
+  const avgTransactionValue = parseFloat(avgTransResult.rows[0].avg) || 0;
+
+  // Inactive users (tidak login dalam 30 hari)
+  const inactiveUsersResult = await pool.query(
+    `SELECT COUNT(*) as count FROM users 
+     WHERE (last_login_at < CURRENT_DATE - INTERVAL '30 days' OR last_login_at IS NULL)
+     AND created_at < CURRENT_DATE - INTERVAL '30 days'`
+  );
+  const inactiveUsers = parseInt(inactiveUsersResult.rows[0].count);
+
+  // Total income and expense (untuk overview, bukan financial detail)
   const incomeResult = await pool.query(
     `SELECT COALESCE(SUM(amount), 0) as total FROM transactions WHERE type = 'income'`
   );
   const totalIncome = parseInt(incomeResult.rows[0].total);
 
-  // Total expense
   const expenseResult = await pool.query(
     `SELECT COALESCE(SUM(amount), 0) as total FROM transactions WHERE type = 'expense'`
   );
   const totalExpense = parseInt(expenseResult.rows[0].total);
 
-  // Transactions by type
-  const typeResult = await pool.query(
-    `SELECT type, COUNT(*) as count, COALESCE(SUM(amount), 0) as total
-     FROM transactions
-     GROUP BY type`
+  // Min/Max per user untuk income, expense, dan balance
+  const userStatsResult = await pool.query(
+    `SELECT 
+      u.id,
+      u.name,
+      u.email,
+      COALESCE(SUM(CASE WHEN t.type = 'income' THEN t.amount ELSE 0 END), 0) as total_income,
+      COALESCE(SUM(CASE WHEN t.type = 'expense' THEN t.amount ELSE 0 END), 0) as total_expense,
+      COALESCE(SUM(CASE WHEN t.type = 'income' THEN t.amount ELSE -t.amount END), 0) as balance
+    FROM users u
+    LEFT JOIN transactions t ON u.id = t.user_id
+    GROUP BY u.id, u.name, u.email
+    HAVING COUNT(t.id) > 0`
   );
+
+  const userStats = userStatsResult.rows;
+  
+  // Find min/max - handle multiple users with same value
+  const findMaxUsers = (stats, field) => {
+    if (stats.length === 0) return [];
+    const maxValue = Math.max(...stats.map(u => parseInt(u[field])));
+    return stats.filter(u => parseInt(u[field]) === maxValue);
+  };
+
+  const findMinUsers = (stats, field) => {
+    if (stats.length === 0) return [];
+    const minValue = Math.min(...stats.map(u => parseInt(u[field])));
+    return stats.filter(u => parseInt(u[field]) === minValue);
+  };
+
+  const maxIncomeUsers = findMaxUsers(userStats, 'total_income');
+  const minIncomeUsers = findMinUsers(userStats, 'total_income');
+  const maxExpenseUsers = findMaxUsers(userStats, 'total_expense');
+  const minExpenseUsers = findMinUsers(userStats, 'total_expense');
+  const maxBalanceUsers = findMaxUsers(userStats, 'balance');
+  const minBalanceUsers = findMinUsers(userStats, 'balance');
+
+  // Format untuk response (ambil pertama jika ada, atau null)
+  const formatUserList = (users, field) => {
+    if (users.length === 0) return null;
+    const amount = parseInt(users[0][field]);
+    return {
+      amount,
+      users: users.map(u => ({
+        name: u.name,
+        email: u.email
+      })),
+      count: users.length
+    };
+  };
 
   return {
     totalUsers,
+    activeUsers,
+    inactiveUsers,
+    newUsers: {
+      today: parseInt(newUsersToday.rows[0].count),
+      thisWeek: parseInt(newUsersThisWeek.rows[0].count),
+      thisMonth: parseInt(newUsersThisMonth.rows[0].count),
+    },
     totalTransactions,
+    newTransactions: {
+      today: parseInt(newTransToday.rows[0].count),
+      thisWeek: parseInt(newTransThisWeek.rows[0].count),
+      thisMonth: parseInt(newTransThisMonth.rows[0].count),
+    },
+    avgTransactionValue,
+    transactionsByType: typeResult.rows,
+    // Financial overview (untuk monitoring, bukan detail)
     totalIncome,
     totalExpense,
-    balance: totalIncome - totalExpense,
-    transactionsByType: typeResult.rows,
+    totalBalance: totalIncome - totalExpense,
+    // Min/Max per user (bisa multiple users dengan nilai sama)
+    maxIncome: formatUserList(maxIncomeUsers, 'total_income'),
+    minIncome: formatUserList(minIncomeUsers, 'total_income'),
+    maxExpense: formatUserList(maxExpenseUsers, 'total_expense'),
+    minExpense: formatUserList(minExpenseUsers, 'total_expense'),
+    maxBalance: formatUserList(maxBalanceUsers, 'balance'),
+    minBalance: formatUserList(minBalanceUsers, 'balance'),
   };
 }
 
@@ -426,4 +572,5 @@ module.exports = {
   getAdminStats,
   updateUserRole,
   deleteUser,
+  updateLastLogin,
 };

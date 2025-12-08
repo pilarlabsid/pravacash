@@ -50,6 +50,36 @@ const broadcastTransactionUpdate = async (userId) => {
   });
 };
 
+// Fungsi helper untuk broadcast update ke semua admin yang sedang online
+const broadcastAdminUpdate = async () => {
+  try {
+    // Get all admin users
+    const allUsers = await database.getAllUsers();
+    const adminUsers = allUsers.filter(u => u.role === 'admin');
+    
+    if (adminUsers.length === 0) {
+      return; // No admin online, skip broadcast
+    }
+    
+    // Get all admin stats
+    const stats = await database.getAdminStats();
+    const allTransactions = await database.getAllTransactions();
+    
+    // Broadcast ke semua admin yang sedang online
+    adminUsers.forEach(admin => {
+      const sockets = userSockets.get(admin.id) || [];
+      sockets.forEach((socket) => {
+        socket.emit("admin:stats:updated", stats);
+        socket.emit("admin:users:updated", allUsers);
+        socket.emit("admin:transactions:updated", allTransactions);
+      });
+    });
+  } catch (error) {
+    console.error("Error broadcasting admin update:", error);
+    // Don't throw, just log error
+  }
+};
+
 app.use(cors());
 app.use(express.json());
 app.use(morgan("dev"));
@@ -92,7 +122,7 @@ app.post(
       if (existingUser) {
         // Update existing user to admin
         await database.updateUserRole(existingUser.id, "admin");
-        return res.json({
+        const result = {
           message: "User berhasil dijadikan admin.",
           user: {
             id: existingUser.id,
@@ -100,7 +130,12 @@ app.post(
             name: existingUser.name,
             role: "admin",
           },
-        });
+        };
+        
+        // Broadcast update ke semua admin
+        await broadcastAdminUpdate();
+        
+        return res.json(result);
       }
 
       // Create new admin user
@@ -114,7 +149,7 @@ app.post(
       // Set role to admin
       await database.updateUserRole(user.id, "admin");
 
-      return res.json({
+      const result = {
         message: "Admin berhasil dibuat.",
         user: {
           id: user.id,
@@ -122,7 +157,12 @@ app.post(
           name: user.name,
           role: "admin",
         },
-      });
+      };
+      
+      // Broadcast update ke semua admin
+      await broadcastAdminUpdate();
+      
+      return res.json(result);
     } catch (error) {
       return res.status(400).json({ message: error.message });
     }
@@ -143,6 +183,9 @@ app.post(
 
     try {
       const result = await auth.register({ email, password, name });
+      // Broadcast update ke semua admin (untuk new user)
+      await broadcastAdminUpdate();
+      
       return res.status(201).json(result);
     } catch (error) {
       return res.status(400).json({ message: error.message });
@@ -163,6 +206,10 @@ app.post(
 
     try {
       const result = await auth.login({ email, password });
+      // Update last login after successful login
+      if (result.user && result.user.id) {
+        await database.updateLastLogin(result.user.id);
+      }
       return res.json(result);
     } catch (error) {
       return res.status(401).json({ message: error.message });
@@ -241,12 +288,17 @@ app.put(
         return res.status(404).json({ message: "User tidak ditemukan." });
       }
 
-      return res.json({
+      const result = {
         id: updated.id,
         email: updated.email,
         name: updated.name,
         pinEnabled: updated.pin_enabled || false,
-      });
+      };
+      
+      // Broadcast update ke semua admin
+      await broadcastAdminUpdate();
+      
+      return res.json(result);
     } catch (error) {
       return res.status(400).json({ message: error.message });
     }
@@ -279,13 +331,18 @@ app.put(
         return res.status(404).json({ message: "User tidak ditemukan." });
       }
 
-      return res.json({
+      const result = {
         id: updated.id,
         email: updated.email,
         name: updated.name,
         pinEnabled: updated.pin_enabled || false,
         message: pin ? "PIN berhasil diatur." : "PIN berhasil dihapus.",
-      });
+      };
+      
+      // Broadcast update ke semua admin
+      await broadcastAdminUpdate();
+      
+      return res.json(result);
     } catch (error) {
       return res.status(400).json({ message: error.message });
     }
@@ -394,14 +451,19 @@ app.put(
         return res.status(404).json({ message: "User tidak ditemukan." });
       }
       
-      res.json({
+      const result = {
         id: updatedUser.id,
         email: updatedUser.email,
         name: updatedUser.name,
         role: updatedUser.role || 'user',
         pinEnabled: updatedUser.pin_enabled || false,
         createdAt: updatedUser.created_at,
-      });
+      };
+      
+      // Broadcast update ke semua admin
+      await broadcastAdminUpdate();
+      
+      res.json(result);
     } catch (error) {
       return res.status(400).json({ message: error.message });
     }
@@ -427,10 +489,15 @@ app.delete(
       return res.status(404).json({ message: "User tidak ditemukan." });
     }
     
-    res.json({
+    const result = {
       message: "User berhasil dihapus.",
       user: deletedUser,
-    });
+    };
+    
+    // Broadcast update ke semua admin
+    await broadcastAdminUpdate();
+    
+    res.json(result);
   })
 );
 
@@ -492,6 +559,9 @@ app.post(
 
     // Broadcast update ke user-specific clients
     await broadcastTransactionUpdate(req.user.userId);
+    
+    // Broadcast update ke semua admin
+    await broadcastAdminUpdate();
 
     return res.status(201).json({ id });
   })
@@ -517,6 +587,9 @@ app.delete(
 
     // Broadcast update ke user-specific clients
     await broadcastTransactionUpdate(userId);
+    
+    // Broadcast update ke semua admin
+    await broadcastAdminUpdate();
 
     return res.status(204).send();
   })
@@ -530,6 +603,9 @@ app.delete(
 
     // Broadcast update ke user-specific clients
     await broadcastTransactionUpdate(req.user.userId);
+    
+    // Broadcast update ke semua admin
+    await broadcastAdminUpdate();
 
     res.status(204).send();
   })
@@ -636,12 +712,13 @@ database
       }
 
       socket.userId = decoded.userId;
+      socket.userRole = decoded.role || 'user';
       next();
     });
 
     io.on("connection", (socket) => {
       const userId = socket.userId;
-      console.log(`✅ Client connected: ${socket.id} (User: ${userId})`);
+      console.log(`Client connected: ${socket.id} (User: ${userId})`);
 
       // Add socket to user's socket list
       if (!userSockets.has(userId)) {
@@ -650,7 +727,7 @@ database
       userSockets.get(userId).push(socket);
 
       socket.on("disconnect", () => {
-        console.log(`❌ Client disconnected: ${socket.id}`);
+        console.log(`Client disconnected: ${socket.id}`);
         // Remove socket from user's socket list
         const sockets = userSockets.get(userId);
         if (sockets) {
@@ -667,15 +744,15 @@ database
 
     server.listen(PORT, HOST, () => {
       console.log("\n" + "=".repeat(60));
-      console.log("🚀 Prava Cash - Multi-User Ready!");
+      console.log("Prava Cash - Multi-User Ready!");
       console.log("=".repeat(60));
-      console.log(`📍 Local:    http://localhost:${PORT}`);
-      console.log(`🌐 Network:  http://${localIP}:${PORT}`);
+      console.log(`Local:    http://localhost:${PORT}`);
+      console.log(`Network:  http://${localIP}:${PORT}`);
       console.log("=".repeat(60));
-      console.log("🔌 WebSocket enabled for realtime updates");
-      console.log("🔐 Authentication enabled");
+      console.log("WebSocket enabled for realtime updates");
+      console.log("Authentication enabled");
       console.log("=".repeat(60));
-      console.log("\n💡 Akses dari perangkat lain di jaringan yang sama:");
+      console.log("\nAkses dari perangkat lain di jaringan yang sama:");
       console.log(`   Gunakan: http://${localIP}:${PORT}`);
       console.log("\n");
     });

@@ -70,6 +70,9 @@ function App() {
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = useState(false);
+  const [isDeleteUserConfirmOpen, setIsDeleteUserConfirmOpen] = useState(false);
+  const [deleteUserTarget, setDeleteUserTarget] = useState(null);
   
   // Admin state - auto set to true if user is admin
   const [isAdminPage, setIsAdminPage] = useState(false);
@@ -81,6 +84,7 @@ function App() {
   const [selectedUser, setSelectedUser] = useState(null);
   const [isEditUserModalOpen, setIsEditUserModalOpen] = useState(false);
   const [editUserForm, setEditUserForm] = useState({ name: "", email: "", role: "user" });
+  const [expandedUsers, setExpandedUsers] = useState(new Set());
 
   const resetPinFlow = () => {
     setPin("");
@@ -362,10 +366,18 @@ function App() {
     }
   };
 
-  const handleDeleteUser = async (userId) => {
-    if (!token || !confirm("Yakin ingin menghapus user ini? Semua transaksinya akan ikut terhapus.")) return;
+  const handleDeleteUser = (userId) => {
+    // Tampilkan modal konfirmasi
+    setDeleteUserTarget(userId);
+    setIsDeleteUserConfirmOpen(true);
+  };
+
+  const confirmDeleteUser = async () => {
+    if (!token || !deleteUserTarget) return;
     
     setAdminLoading(true);
+    setIsDeleteUserConfirmOpen(false);
+    
     try {
       const apiBase = getApiUrl();
       const headers = {
@@ -374,7 +386,7 @@ function App() {
       if (token) {
         headers["Authorization"] = `Bearer ${token}`;
       }
-      const response = await fetch(`${apiBase}/api/admin/users/${userId}`, {
+      const response = await fetch(`${apiBase}/api/admin/users/${deleteUserTarget}`, {
         method: "DELETE",
         headers,
       });
@@ -390,6 +402,7 @@ function App() {
       setToast({ type: "error", message: "Gagal menghapus user." });
     } finally {
       setAdminLoading(false);
+      setDeleteUserTarget(null);
     }
   };
 
@@ -401,6 +414,7 @@ function App() {
       fetchAdminTransactions();
     }
   }, [isAdminPage, user, fetchAdminStats, fetchAdminUsers, fetchAdminTransactions]);
+
 
   // Authentication functions
   const handleLogin = async (e) => {
@@ -487,6 +501,11 @@ function App() {
   };
 
   const handleLogout = () => {
+    // Tampilkan modal konfirmasi
+    setIsLogoutConfirmOpen(true);
+  };
+
+  const confirmLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     setToken(null);
@@ -494,6 +513,7 @@ function App() {
     setIsAuthenticated(false);
     setEntries([]);
     setIsAdminPage(false);
+    setIsLogoutConfirmOpen(false);
     setToast({ type: "success", message: "Anda telah logout." });
   };
 
@@ -662,15 +682,15 @@ function App() {
     socket.on("connect", () => {
       // Log hanya di development
       if (import.meta.env.DEV) {
-        console.log('✅ Socket connected:', socket.id);
-        console.log('📡 Transport:', socket.io.engine.transport.name);
+        console.log('Socket connected:', socket.id);
+        console.log('Transport:', socket.io.engine.transport.name);
       }
     });
 
     socket.on("disconnect", (reason) => {
       // Log hanya di development
       if (import.meta.env.DEV) {
-        console.log('❌ Socket disconnected:', reason);
+        console.log('Socket disconnected:', reason);
       }
     });
 
@@ -678,7 +698,7 @@ function App() {
       // Suppress error WebSocket di production karena kita sudah force polling
       // Error ini normal terjadi ketika WebSocket tidak tersedia
       if (import.meta.env.DEV) {
-        console.error('❌ Socket connection error:', error.message);
+        console.error('Socket connection error:', error.message);
       }
       // Jika koneksi gagal, tetap gunakan polling untuk fetch data
       // fetchEntries akan tetap berjalan untuk fallback
@@ -686,27 +706,27 @@ function App() {
 
     socket.on("reconnect", (attemptNumber) => {
       if (import.meta.env.DEV) {
-        console.log('🔄 WebSocket reconnected after', attemptNumber, 'attempts');
+        console.log('WebSocket reconnected after', attemptNumber, 'attempts');
       }
     });
 
     socket.on("reconnect_attempt", () => {
       if (import.meta.env.DEV) {
-        console.log('🔄 Attempting to reconnect WebSocket...');
+        console.log('Attempting to reconnect WebSocket...');
       }
     });
 
     socket.on("reconnect_error", (error) => {
       // Suppress error di production karena kita sudah force polling
       if (import.meta.env.DEV) {
-        console.error('❌ Socket reconnection error:', error.message);
+        console.error('Socket reconnection error:', error.message);
       }
     });
 
     socket.on("reconnect_failed", () => {
       // Log hanya di development
       if (import.meta.env.DEV) {
-        console.error('❌ Socket reconnection failed. Using polling fallback.');
+        console.error('Socket reconnection failed. Using polling fallback.');
       }
     });
 
@@ -714,7 +734,7 @@ function App() {
     socket.on("transactions:updated", (transactions) => {
       // Log di production juga untuk debugging
       if (import.meta.env.DEV) {
-        console.log('📨 Received transactions update via Socket');
+        console.log('Received transactions update via Socket');
       }
       // Update data tanpa loading indicator
       setEntries(
@@ -725,11 +745,38 @@ function App() {
       );
     });
 
+    // Listen untuk admin updates (hanya jika user adalah admin)
+    if (user?.role === 'admin') {
+      // Listen untuk admin stats update
+      socket.on("admin:stats:updated", (stats) => {
+        if (import.meta.env.DEV) {
+          console.log('Admin stats updated via WebSocket');
+        }
+        setAdminStats(stats);
+      });
+
+      // Listen untuk admin users update
+      socket.on("admin:users:updated", (users) => {
+        if (import.meta.env.DEV) {
+          console.log('Admin users updated via WebSocket');
+        }
+        setAdminUsers(users);
+      });
+
+      // Listen untuk admin transactions update
+      socket.on("admin:transactions:updated", (transactions) => {
+        if (import.meta.env.DEV) {
+          console.log('Admin transactions updated via WebSocket');
+        }
+        setAdminTransactions(transactions);
+      });
+    }
+
     // Cleanup saat component unmount
     return () => {
       socket.disconnect();
     };
-  }, [isAuthenticated, token]);
+  }, [isAuthenticated, token, user]);
 
   useEffect(() => {
     if (!toast) return undefined;
@@ -1089,7 +1136,7 @@ const runningEntries = useMemo(() => {
       'mei': '05', 'jun': '06', 'jul': '07', 'agu': '08',
       'sep': '09', 'okt': '10', 'nov': '11', 'des': '12',
       'januari': '01', 'februari': '02', 'maret': '03', 'april': '04',
-      'mei': '05', 'juni': '06', 'juli': '07', 'agustus': '08',
+      'juni': '06', 'juli': '07', 'agustus': '08',
       'september': '09', 'oktober': '10', 'november': '11', 'desember': '12'
     };
 
@@ -1937,6 +1984,7 @@ const runningEntries = useMemo(() => {
             {/* Admin Dashboard Tab */}
             {adminTab === "dashboard" && adminStats && (
               <div className="space-y-6">
+                {/* Key Metrics - System & User Activity */}
                 <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
                   <StatCard
                     label="Total Users"
@@ -1944,26 +1992,259 @@ const runningEntries = useMemo(() => {
                     className="from-purple-500 via-purple-400 to-purple-500 text-white"
                   />
                   <StatCard
+                    label="Active Users (7d)"
+                    value={adminStats.activeUsers || 0}
+                    className="from-emerald-500 via-emerald-400 to-emerald-500 text-white"
+                  />
+                  <StatCard
+                    label="Inactive Users (30d)"
+                    value={adminStats.inactiveUsers || 0}
+                    className="from-amber-500 via-amber-400 to-amber-500 text-white"
+                  />
+                  <StatCard
                     label="Total Transactions"
                     value={adminStats.totalTransactions}
                     className="from-blue-500 via-blue-400 to-blue-500 text-white"
                   />
-                  <StatCard
-                    label="Total Income"
-                    value={formatCurrency(adminStats.totalIncome)}
-                    className={STAT_STYLES.income}
-                  />
-                  <StatCard
-                    label="Total Expense"
-                    value={formatCurrency(adminStats.totalExpense)}
-                    className={STAT_STYLES.expense}
-                  />
                 </div>
+
+                {/* Transaction Volume Metrics */}
+                <div className="grid gap-6 rounded-2xl bg-white p-6 shadow-soft sm:grid-cols-2">
+                  <div>
+                    <h3 className="mb-4 text-lg font-semibold text-slate-900">Transaction Volume</h3>
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-slate-600">Income Transactions</span>
+                        <span className="font-semibold text-slate-900">
+                          {adminStats.transactionsByType?.find(t => t.type === 'income')?.count || 0}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-slate-600">Expense Transactions</span>
+                        <span className="font-semibold text-slate-900">
+                          {adminStats.transactionsByType?.find(t => t.type === 'expense')?.count || 0}
+                        </span>
+                      </div>
+                      <div className="mt-3 flex justify-between border-t border-slate-200 pt-2 text-sm font-semibold">
+                        <span className="text-slate-900">Avg Transaction Value</span>
+                        <span className="text-indigo-600">
+                          {formatCurrency(Math.round(adminStats.avgTransactionValue || 0))}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <h3 className="mb-4 text-lg font-semibold text-slate-900">User Engagement</h3>
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-slate-600">Active Rate</span>
+                        <span className="font-semibold text-slate-900">
+                          {adminStats.totalUsers > 0 
+                            ? Math.round((adminStats.activeUsers / adminStats.totalUsers) * 100) 
+                            : 0}%
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-slate-600">Avg Transactions/User</span>
+                        <span className="font-semibold text-slate-900">
+                          {adminStats.totalUsers > 0 
+                            ? Math.round(adminStats.totalTransactions / adminStats.totalUsers) 
+                            : 0}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Financial Overview - Not in Cards */}
                 <div className="rounded-2xl bg-white p-6 shadow-soft">
-                  <h3 className="mb-4 text-lg font-semibold text-slate-900">Balance</h3>
-                  <p className="text-3xl font-semibold text-slate-900">
-                    {formatCurrency(adminStats.balance)}
-                  </p>
+                  <h3 className="mb-4 text-lg font-semibold text-slate-900">Financial Overview</h3>
+                  <div className="grid gap-4 sm:grid-cols-3">
+                    <div>
+                      <p className="text-sm text-slate-600">Total Income</p>
+                      <p className="mt-1 text-xl font-semibold text-emerald-600">
+                        {formatCurrency(adminStats.totalIncome || 0)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-slate-600">Total Expense</p>
+                      <p className="mt-1 text-xl font-semibold text-rose-600">
+                        {formatCurrency(adminStats.totalExpense || 0)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-slate-600">Total Balance</p>
+                      <p className={`mt-1 text-xl font-semibold ${
+                        (adminStats.totalBalance || 0) >= 0 ? 'text-emerald-600' : 'text-rose-600'
+                      }`}>
+                        {formatCurrency(adminStats.totalBalance || 0)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Min/Max Statistics */}
+                <div className="grid gap-6 rounded-2xl bg-white p-6 shadow-soft sm:grid-cols-3">
+                  {/* Income Min/Max */}
+                  <div>
+                    <h3 className="mb-4 text-lg font-semibold text-slate-900">Pemasukan</h3>
+                    <div className="space-y-3">
+                      {adminStats.maxIncome && (
+                        <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3">
+                          <p className="text-xs text-emerald-700">
+                            Tertinggi {adminStats.maxIncome.count > 1 && `(${adminStats.maxIncome.count} user)`}
+                          </p>
+                          <p className="mt-1 text-sm font-semibold text-emerald-900">
+                            {formatCurrency(adminStats.maxIncome.amount)}
+                          </p>
+                          <div className="mt-2 space-y-1">
+                            {adminStats.maxIncome.users.map((u, idx) => (
+                              <p key={idx} className="text-xs text-emerald-600">
+                                {u.name}
+                              </p>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {adminStats.minIncome && (
+                        <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                          <p className="text-xs text-slate-700">
+                            Terendah {adminStats.minIncome.count > 1 && `(${adminStats.minIncome.count} user)`}
+                          </p>
+                          <p className="mt-1 text-sm font-semibold text-slate-900">
+                            {formatCurrency(adminStats.minIncome.amount)}
+                          </p>
+                          <div className="mt-2 space-y-1">
+                            {adminStats.minIncome.users.map((u, idx) => (
+                              <p key={idx} className="text-xs text-slate-600">
+                                {u.name}
+                              </p>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Expense Min/Max */}
+                  <div>
+                    <h3 className="mb-4 text-lg font-semibold text-slate-900">Pengeluaran</h3>
+                    <div className="space-y-3">
+                      {adminStats.maxExpense && (
+                        <div className="rounded-lg border border-rose-200 bg-rose-50 p-3">
+                          <p className="text-xs text-rose-700">
+                            Tertinggi {adminStats.maxExpense.count > 1 && `(${adminStats.maxExpense.count} user)`}
+                          </p>
+                          <p className="mt-1 text-sm font-semibold text-rose-900">
+                            {formatCurrency(adminStats.maxExpense.amount)}
+                          </p>
+                          <div className="mt-2 space-y-1">
+                            {adminStats.maxExpense.users.map((u, idx) => (
+                              <p key={idx} className="text-xs text-rose-600">
+                                {u.name}
+                              </p>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {adminStats.minExpense && (
+                        <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                          <p className="text-xs text-slate-700">
+                            Terendah {adminStats.minExpense.count > 1 && `(${adminStats.minExpense.count} user)`}
+                          </p>
+                          <p className="mt-1 text-sm font-semibold text-slate-900">
+                            {formatCurrency(adminStats.minExpense.amount)}
+                          </p>
+                          <div className="mt-2 space-y-1">
+                            {adminStats.minExpense.users.map((u, idx) => (
+                              <p key={idx} className="text-xs text-slate-600">
+                                {u.name}
+                              </p>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Balance Min/Max */}
+                  <div>
+                    <h3 className="mb-4 text-lg font-semibold text-slate-900">Saldo</h3>
+                    <div className="space-y-3">
+                      {adminStats.maxBalance && (
+                        <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3">
+                          <p className="text-xs text-emerald-700">
+                            Tertinggi {adminStats.maxBalance.count > 1 && `(${adminStats.maxBalance.count} user)`}
+                          </p>
+                          <p className="mt-1 text-sm font-semibold text-emerald-900">
+                            {formatCurrency(adminStats.maxBalance.amount)}
+                          </p>
+                          <div className="mt-2 space-y-1">
+                            {adminStats.maxBalance.users.map((u, idx) => (
+                              <p key={idx} className="text-xs text-emerald-600">
+                                {u.name}
+                              </p>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {adminStats.minBalance && (
+                        <div className="rounded-lg border border-rose-200 bg-rose-50 p-3">
+                          <p className="text-xs text-rose-700">
+                            Terendah {adminStats.minBalance.count > 1 && `(${adminStats.minBalance.count} user)`}
+                          </p>
+                          <p className="mt-1 text-sm font-semibold text-rose-900">
+                            {formatCurrency(adminStats.minBalance.amount)}
+                          </p>
+                          <div className="mt-2 space-y-1">
+                            {adminStats.minBalance.users.map((u, idx) => (
+                              <p key={idx} className="text-xs text-rose-600">
+                                {u.name}
+                              </p>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Growth Metrics */}
+                <div className="grid gap-6 rounded-2xl bg-white p-6 shadow-soft sm:grid-cols-2">
+                  <div>
+                    <h3 className="mb-4 text-lg font-semibold text-slate-900">New Users</h3>
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-slate-600">Today</span>
+                        <span className="font-semibold text-slate-900">{adminStats.newUsers?.today || 0}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-slate-600">This Week</span>
+                        <span className="font-semibold text-slate-900">{adminStats.newUsers?.thisWeek || 0}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-slate-600">This Month</span>
+                        <span className="font-semibold text-slate-900">{adminStats.newUsers?.thisMonth || 0}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <h3 className="mb-4 text-lg font-semibold text-slate-900">New Transactions</h3>
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-slate-600">Today</span>
+                        <span className="font-semibold text-slate-900">{adminStats.newTransactions?.today || 0}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-slate-600">This Week</span>
+                        <span className="font-semibold text-slate-900">{adminStats.newTransactions?.thisWeek || 0}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-slate-600">This Month</span>
+                        <span className="font-semibold text-slate-900">{adminStats.newTransactions?.thisMonth || 0}</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
@@ -1986,6 +2267,9 @@ const runningEntries = useMemo(() => {
                         </th>
                         <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                           Transactions
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                          Last Login
                         </th>
                         <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                           Created
@@ -2017,6 +2301,17 @@ const runningEntries = useMemo(() => {
                             {u.transaction_count || 0}
                           </td>
                           <td className="px-4 py-3 text-sm text-slate-500">
+                            {u.last_login_at 
+                              ? new Date(u.last_login_at).toLocaleDateString("id-ID", {
+                                  day: "numeric",
+                                  month: "short",
+                                  year: "numeric",
+                                  hour: "2-digit",
+                                  minute: "2-digit"
+                                })
+                              : "Never"}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-slate-500">
                             {new Date(u.created_at).toLocaleDateString("id-ID")}
                           </td>
                           <td className="px-4 py-3">
@@ -2045,54 +2340,162 @@ const runningEntries = useMemo(() => {
               </div>
             )}
 
-            {/* Admin Transactions Tab */}
+            {/* Admin Transactions Tab - Grouped by User */}
             {adminTab === "transactions" && (
-              <div className="rounded-2xl bg-white shadow-soft">
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-slate-100">
-                    <thead className="bg-slate-50">
-                      <tr>
-                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                          Date
-                        </th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                          User
-                        </th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                          Description
-                        </th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                          Type
-                        </th>
-                        <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">
-                          Amount
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 bg-white">
-                      {adminTransactions.map((t) => (
-                        <tr key={t.id}>
-                          <td className="px-4 py-3 text-sm text-slate-600">
-                            {formatDate(t.date)}
-                          </td>
-                          <td className="px-4 py-3 text-sm font-semibold text-slate-900">
-                            {t.user_name}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-slate-600">{t.description}</td>
-                          <td className="px-4 py-3">
-                            <Badge
-                              label={t.type}
-                              variant={t.type}
-                            />
-                          </td>
-                          <td className="px-4 py-3 text-right text-sm font-semibold text-slate-900">
-                            {formatCurrency(t.amount)}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+              <div className="space-y-4">
+                {(() => {
+                  // Group transactions by user
+                  const transactionsByUser = adminTransactions.reduce((acc, transaction) => {
+                    const userId = transaction.user_id;
+                    if (!acc[userId]) {
+                      acc[userId] = {
+                        user_id: userId,
+                        user_name: transaction.user_name,
+                        user_email: transaction.user_email,
+                        transactions: [],
+                        total_income: 0,
+                        total_expense: 0,
+                      };
+                    }
+                    acc[userId].transactions.push(transaction);
+                    if (transaction.type === 'income') {
+                      acc[userId].total_income += transaction.amount;
+                    } else {
+                      acc[userId].total_expense += transaction.amount;
+                    }
+                    return acc;
+                  }, {});
+
+                  const userGroups = Object.values(transactionsByUser).sort((a, b) => 
+                    b.transactions.length - a.transactions.length
+                  );
+
+                  return userGroups.map((userGroup) => {
+                    const isExpanded = expandedUsers.has(userGroup.user_id);
+                    const balance = userGroup.total_income - userGroup.total_expense;
+
+                    return (
+                      <div key={userGroup.user_id} className="rounded-2xl border border-slate-200 bg-white shadow-soft">
+                        {/* User Header - Clickable */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newExpanded = new Set(expandedUsers);
+                            if (isExpanded) {
+                              newExpanded.delete(userGroup.user_id);
+                            } else {
+                              newExpanded.add(userGroup.user_id);
+                            }
+                            setExpandedUsers(newExpanded);
+                          }}
+                          className="w-full px-6 py-4 text-left transition hover:bg-slate-50"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-3">
+                                <h3 className="text-lg font-semibold text-slate-900">
+                                  {userGroup.user_name}
+                                </h3>
+                                <span className="text-sm text-slate-500">
+                                  ({userGroup.user_email})
+                                </span>
+                              </div>
+                              <div className="mt-2 flex gap-4 text-sm text-slate-600">
+                                <span>
+                                  <span className="font-semibold">{userGroup.transactions.length}</span> transaksi
+                                </span>
+                                <span>
+                                  Income: <span className="font-semibold text-emerald-600">{formatCurrency(userGroup.total_income)}</span>
+                                </span>
+                                <span>
+                                  Expense: <span className="font-semibold text-rose-600">{formatCurrency(userGroup.total_expense)}</span>
+                                </span>
+                                <span>
+                                  Balance: <span className={`font-semibold ${balance >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                    {formatCurrency(balance)}
+                                  </span>
+                                </span>
+                              </div>
+                            </div>
+                            <svg
+                              className={`h-5 w-5 text-slate-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M19 9l-7 7-7-7"
+                              />
+                            </svg>
+                          </div>
+                        </button>
+
+                        {/* Transactions List - Collapsible with Scroll */}
+                        {isExpanded && (
+                          <div className="border-t border-slate-200">
+                            <div className="max-h-[400px] overflow-y-auto">
+                              <div className="overflow-x-auto">
+                                <table className="min-w-full divide-y divide-slate-100">
+                                  <thead className="sticky top-0 bg-slate-50 z-10">
+                                    <tr>
+                                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                        Date
+                                      </th>
+                                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                        Description
+                                      </th>
+                                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                        Type
+                                      </th>
+                                      <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                        Amount
+                                      </th>
+                                    </tr>
+                                  </thead>
+                                  <tbody className="divide-y divide-slate-100 bg-white">
+                                    {userGroup.transactions
+                                      .sort((a, b) => new Date(b.date) - new Date(a.date))
+                                      .map((t) => (
+                                        <tr key={t.id}>
+                                          <td className="px-4 py-3 text-sm text-slate-600">
+                                            {formatDate(t.date)}
+                                          </td>
+                                          <td className="px-4 py-3 text-sm text-slate-600">{t.description}</td>
+                                          <td className="px-4 py-3">
+                                            <Badge
+                                              label={t.type}
+                                              variant={t.type}
+                                            />
+                                          </td>
+                                          <td className="px-4 py-3 text-right text-sm font-semibold text-slate-900">
+                                            {formatCurrency(t.amount)}
+                                          </td>
+                                        </tr>
+                                      ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  });
+                })()}
+
+                {adminTransactions.length === 0 && (
+                  <div className="rounded-2xl border border-dashed border-slate-200 bg-white py-12 text-center">
+                    <p className="text-base font-semibold text-slate-800">
+                      Belum ada transaksi
+                    </p>
+                    <p className="mt-1 text-sm text-slate-500">
+                      Transaksi akan muncul di sini setelah user membuat transaksi.
+                    </p>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -2777,6 +3180,104 @@ const runningEntries = useMemo(() => {
                 className="inline-flex items-center justify-center rounded-2xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-soft transition hover:bg-indigo-700 disabled:opacity-50"
               >
                 {importing ? "Mengimpor..." : "Konfirmasi PIN"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Logout Confirmation Modal */}
+      {isLogoutConfirmOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 px-4">
+          <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl sm:p-8">
+            <div className="mb-6 text-center">
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-rose-100">
+                <svg
+                  className="h-8 w-8 text-rose-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                  />
+                </svg>
+              </div>
+              <h2 className="text-2xl font-semibold text-slate-900">
+                Konfirmasi Logout
+              </h2>
+              <p className="mt-2 text-sm text-slate-600">
+                Apakah Anda yakin ingin logout? Anda perlu login kembali untuk mengakses aplikasi.
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setIsLogoutConfirmOpen(false)}
+                className="flex-1 rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={confirmLogout}
+                className="flex-1 rounded-2xl bg-rose-600 px-4 py-3 text-sm font-semibold text-white shadow-soft transition hover:bg-rose-700"
+              >
+                Logout
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete User Confirmation Modal */}
+      {isDeleteUserConfirmOpen && deleteUserTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 px-4">
+          <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl sm:p-8">
+            <div className="mb-6 text-center">
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-rose-100">
+                <svg
+                  className="h-8 w-8 text-rose-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                  />
+                </svg>
+              </div>
+              <h2 className="text-2xl font-semibold text-slate-900">
+                Konfirmasi Hapus User
+              </h2>
+              <p className="mt-2 text-sm text-slate-600">
+                Apakah Anda yakin ingin menghapus user ini? Semua transaksi yang terkait dengan user ini akan ikut terhapus secara permanen. Tindakan ini tidak dapat dibatalkan.
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsDeleteUserConfirmOpen(false);
+                  setDeleteUserTarget(null);
+                }}
+                className="flex-1 rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={confirmDeleteUser}
+                disabled={adminLoading}
+                className="flex-1 rounded-2xl bg-rose-600 px-4 py-3 text-sm font-semibold text-white shadow-soft transition hover:bg-rose-700 disabled:opacity-50"
+              >
+                {adminLoading ? "Menghapus..." : "Hapus User"}
               </button>
             </div>
           </div>
