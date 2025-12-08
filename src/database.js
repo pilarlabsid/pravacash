@@ -17,14 +17,22 @@ const getConnectionString = () => {
 };
 
 // Create PostgreSQL connection pool
-const pool = new Pool({
-  host: config.host,
-  user: config.user,
-  password: config.password,
-  database: config.database,
-  port: config.port,
-  ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false,
-});
+// Prioritize DATABASE_URL if available (for Railway/production)
+const poolConfig = process.env.DATABASE_URL
+  ? {
+      connectionString: process.env.DATABASE_URL,
+      ssl: { rejectUnauthorized: false },
+    }
+  : {
+      host: config.host,
+      user: config.user,
+      password: config.password,
+      database: config.database,
+      port: config.port,
+      ssl: false,
+    };
+
+const pool = new Pool(poolConfig);
 
 // Test connection
 pool.on("error", (err) => {
