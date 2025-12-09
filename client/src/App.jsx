@@ -2091,7 +2091,7 @@ const runningEntries = useMemo(() => {
                   <LoadingSpinner size="lg" className="mx-auto mb-3" />
                   <p className="text-sm font-medium text-slate-500">Memuat dashboard...</p>
                 </div>
-              ) : adminStats && (
+              ) : adminStats ? (
               <div className="space-y-6">
                 {/* Key Metrics - System & User Activity */}
                 <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
