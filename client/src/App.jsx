@@ -959,10 +959,11 @@ const runningEntries = useMemo(() => {
         }
       }
 
-      if (pinMode === "edit" && editingTarget) {
-      const apiBase = getApiUrl();
-      const response = await authenticatedFetch(
-        `${apiBase}/api/transactions/${editingTarget}`,
+      // Check if editing (use isEditing or pinMode check)
+      if (isEditing || (pinMode === "edit" && editingTarget)) {
+        const apiBase = getApiUrl();
+        const response = await authenticatedFetch(
+          `${apiBase}/api/transactions/${editingTarget}`,
           {
             method: "PUT",
             body: JSON.stringify(normalizedPayload),
@@ -979,6 +980,7 @@ const runningEntries = useMemo(() => {
         return;
       }
 
+      // Create new transaction
       const apiBase = getApiUrl();
       const response = await authenticatedFetch(`${apiBase}/api/transactions`, {
         method: "POST",
