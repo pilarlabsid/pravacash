@@ -47,7 +47,7 @@ function App() {
   const [form, setForm] = useState(() => createInitialForm({}, settings.timezone || "Asia/Jakarta"));
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [authLoading, setAuthLoading] = useState(false);
+  const [authFormLoading, setAuthFormLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [toast, setToast] = useState(null);
@@ -56,7 +56,6 @@ function App() {
   const [resetting, setResetting] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [pinMode, setPinMode] = useState(null); // "create" | "delete" | "reset"
-  const [deleting, setDeleting] = useState(false);
   const [editingTarget, setEditingTarget] = useState(null);
   const [isPinStep, setIsPinStep] = useState(false);
   const [pin, setPin] = useState("");
@@ -425,7 +424,7 @@ function App() {
   const handleLogin = async (e) => {
     e.preventDefault();
     setAuthError("");
-    setAuthLoading(true);
+    setAuthFormLoading(true);
     
     try {
       const apiBase = getApiUrl();
@@ -458,14 +457,14 @@ function App() {
       console.error(error);
       setAuthError(error.message);
     } finally {
-      setAuthLoading(false);
+      setAuthFormLoading(false);
     }
   };
 
   const handleRegister = async (e) => {
     e.preventDefault();
     setAuthError("");
-    setAuthLoading(true);
+    setAuthFormLoading(true);
 
     if (registerForm.password.length < 6) {
       setAuthError("Password minimal 6 karakter.");
@@ -508,7 +507,7 @@ function App() {
       console.error(error);
       setAuthError(error.message);
     } finally {
-      setAuthLoading(false);
+      setAuthFormLoading(false);
     }
   };
 
@@ -1643,7 +1642,7 @@ const runningEntries = useMemo(() => {
                     </button>
                     <LoadingButton
                       type="submit"
-                      loading={authLoading}
+                      loading={authFormLoading}
                       className="flex-1 rounded-2xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-soft transition hover:bg-indigo-700"
                     >
                       Login
@@ -1715,7 +1714,7 @@ const runningEntries = useMemo(() => {
                     </button>
                     <LoadingButton
                       type="submit"
-                      loading={authLoading}
+                      loading={authFormLoading}
                       className="flex-1 rounded-2xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-soft transition hover:bg-indigo-700"
                     >
                       Daftar
@@ -2092,7 +2091,7 @@ const runningEntries = useMemo(() => {
                   <LoadingSpinner size="lg" className="mx-auto mb-3" />
                   <p className="text-sm font-medium text-slate-500">Memuat dashboard...</p>
                 </div>
-              ) : adminStats ? (
+              ) : adminStats && (
               <div className="space-y-6">
                 {/* Key Metrics - System & User Activity */}
                 <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
@@ -2357,6 +2356,7 @@ const runningEntries = useMemo(() => {
                   </div>
                 </div>
               </div>
+              )
             )}
 
             {/* Admin Users Tab */}
