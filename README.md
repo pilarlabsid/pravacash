@@ -1,14 +1,15 @@
 # Prava Cash - Cashflow Management Dashboard
 
-Dashboard arus kas modern dengan backend **Node.js + Express + PostgreSQL** serta frontend **React (Vite) + Tailwind CSS**. Dilengkapi dengan **WebSocket (Socket.IO)** untuk real-time update otomatis di semua client yang terhubung. **Multi-user support** dengan sistem autentikasi lengkap.
+Dashboard arus kas modern dengan backend **Node.js + Express + SQLite** serta frontend **React (Vite) + Tailwind CSS**. Dilengkapi dengan **WebSocket (Socket.IO)** untuk real-time update otomatis di semua client yang terhubung. **Multi-user support** dengan sistem autentikasi lengkap dan **Admin Panel** untuk manajemen user.
 
 ## ✨ Fitur
 
 - 👥 **Multi-User**: Setiap user memiliki data transaksi terpisah
 - 🔐 **Authentication**: Sistem login dan register dengan JWT token
+- 🛡️ **Admin Panel**: Dashboard khusus admin untuk mengelola user (create, edit, delete)
 - 📊 **Dashboard Real-time**: Auto-update otomatis menggunakan WebSocket ketika ada perubahan data
 - 💰 **Manajemen Transaksi**: Input, edit, dan hapus transaksi dengan validasi lengkap
-- 🔒 **Keamanan PIN**: Proteksi dengan PIN 4-digit untuk semua operasi penting
+- 🔒 **Keamanan PIN**: Proteksi dengan PIN 4-digit untuk semua operasi penting (default: `6745`)
 - 📱 **Responsive Design**: UI modern dan responsif dengan Tailwind CSS
 - 📈 **Running Balance**: Perhitungan saldo berjalan otomatis
 - 📥 **Export Excel**: Unduh data transaksi dalam format Excel
@@ -21,45 +22,28 @@ Dashboard arus kas modern dengan backend **Node.js + Express + PostgreSQL** sert
 .
 ├── client/              # Vite + React + Tailwind app
 │   ├── src/
-│   │   ├── App.jsx      # Komponen utama dengan WebSocket
+│   │   ├── App.jsx      # Komponen utama dengan WebSocket & Dashboard
 │   │   └── lib/
 │   └── package.json
 ├── docs/                # Dokumentasi
-│   ├── DEPLOYMENT.md
-│   ├── RAILWAY_SETUP.md
-│   ├── NETLIFY_FIX.md
-│   ├── WEBSOCKET_FIX.md
-│   └── ...
 ├── src/
-│   ├── database.js      # Helper PostgreSQL (create/read/update/delete)
-│   └── auth.js         # Authentication helpers (JWT, bcrypt)
+│   ├── database.sqlite.js # Helper SQLite (create/read/update/delete)
+│   └── auth.js          # Authentication helpers (JWT, bcrypt)
 ├── server.js            # Express API + Socket.IO + static file server
 ├── package.json         # Backend dependencies
-└── netlify.toml         # Konfigurasi Netlify
+└── database.sqlite      # File database SQLite (auto-generated)
 ```
 
 ## 🚀 Menjalankan Secara Lokal
 
 ### Prasyarat
 - Node.js ≥18
-- PostgreSQL ≥12 (atau gunakan managed database seperti Supabase/Railway)
+- npm atau yarn
 
-### Setup Database
+### Setup Environment Variables
 
-1. **Install PostgreSQL** (jika belum):
-   - macOS: `brew install postgresql`
-   - Ubuntu: `sudo apt-get install postgresql`
-   - Windows: Download dari [postgresql.org](https://www.postgresql.org/download/)
-
-2. **Buat database:**
+1. **Buat file .env di root project:**
    ```bash
-   createdb pravacash
-   ```
-
-3. **Setup environment variables:**
-   ```bash
-   # Buat file .env di root project
-   DATABASE_URL=postgresql://username:password@localhost:5432/pravacash
    JWT_SECRET=your-secret-key-change-in-production
    JWT_EXPIRES_IN=7d
    PORT=4000
@@ -82,19 +66,23 @@ Dashboard arus kas modern dengan backend **Node.js + Express + PostgreSQL** sert
    # Terminal 1 -> Backend
    npm run dev
 
-   # Terminal 2 -> Frontend
-   npm run client
+   # Terminal 2 -> Frontend (Proxy ke port 4000)
+   npm run dev
    ```
    - Backend: `http://localhost:4000`
-   - Frontend: `http://localhost:6001` (proxy ke backend)
+   - Frontend: `http://localhost:5173` (atau port Vite default lainnya)
 
-4. **Build produksi:**
-   ```bash
-   npm run client:build
-   npm start
-   ```
-
-Database schema akan otomatis dibuat saat pertama kali menjalankan aplikasi.
+### Inisialisasi Admin Pertama
+Untuk membuat akun admin pertama kali, gunakan endpoint khusus:
+```bash
+curl -X POST http://localhost:4000/api/admin/create-first \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "admin@pravapos.com",
+    "password": "password",
+    "name": "Administrator"
+  }'
+```
 
 ## 📡 API Endpoints
 
@@ -103,7 +91,16 @@ Database schema akan otomatis dibuat saat pertama kali menjalankan aplikasi.
 | ------ | ------------------------- | ----------------------------------- |
 | POST   | `/api/auth/register`      | Daftar user baru                    |
 | POST   | `/api/auth/login`         | Login user                          |
-| GET    | `/api/auth/verify`         | Verify token (protected)             |
+| GET    | `/api/auth/verify`        | Verify token (protected)            |
+
+### Admin (Protected - requires Admin role)
+| Method | Path                      | Deskripsi                           |
+| ------ | ------------------------- | ----------------------------------- |
+| GET    | `/api/admin/users`        | Ambil daftar semua user             |
+| POST   | `/api/admin/users`        | Buat user baru oleh admin           |
+| PUT    | `/api/admin/users/:id`    | Update data user                    |
+| DELETE | `/api/admin/users/:id`    | Hapus user                          |
+| GET    | `/api/admin/stats`        | Statistik global dashboard admin    |
 
 ### Transactions (Protected - requires JWT token)
 | Method | Path                      | Deskripsi                           |
@@ -114,121 +111,41 @@ Database schema akan otomatis dibuat saat pertama kali menjalankan aplikasi.
 | DELETE | `/api/transactions/:id`   | Hapus satu transaksi                |
 | DELETE | `/api/transactions`       | Hapus semua transaksi user          |
 
-### Health Check
-| Method | Path                      | Deskripsi                           |
-| ------ | ------------------------- | ----------------------------------- |
-| GET    | `/health`                 | Health check endpoint               |
-
-**Catatan**: Semua endpoint transactions memerlukan header `Authorization: Bearer <token>`
-
-### Contoh Request
-
-**POST /api/transactions:**
-```json
-{
-  "description": "Warung Biru",
-  "type": "expense",
-  "amount": 233000,
-  "date": "2025-01-15"
-}
-```
-
 ## 🔌 WebSocket / Real-time Updates
 
-Aplikasi menggunakan **Socket.IO** untuk real-time update:
-
-- Ketika ada perubahan data (create/update/delete), semua client yang terhubung akan otomatis menerima update
-- Tidak perlu refresh halaman untuk melihat perubahan terbaru
-- Support multiple clients secara bersamaan
-
-**Event yang dikirim server:**
-- `transactions:updated` - Dikirim ketika ada perubahan data
+Aplikasi menggunakan **Socket.IO** untuk sinkronisasi data antar client:
+- Event `transactions:updated`: Dikirim ketika ada perubahan data transaksi.
+- Event `admin:users:updated`: Dikirim ke semua admin ketika ada perubahan data user.
 
 ## 🌐 Deployment
 
-### Arsitektur Deployment
+### Backend (Node.js + SQLite)
+- Gunakan host yang mendukung persistent storage (seperti VPS, Railway with Volumes, atau Heroku with Docker).
+- Pastikan file `database.sqlite` tidak terhapus saat redeploy.
 
-- **Frontend**: Netlify (static hosting)
-- **Backend**: Railway (Node.js hosting)
-
-### Quick Start Deployment
-
-1. **Deploy Backend ke Railway:**
-   - Lihat panduan lengkap: [RAILWAY_SETUP.md](./docs/RAILWAY_SETUP.md)
-   - Build Command: `npm install`
-   - Start Command: `npm start`
-   - **PENTING**: Tambahkan Volume untuk folder `data/` (mount path: `/app/data`)
-
-2. **Deploy Frontend ke Netlify:**
-   - Lihat panduan lengkap: [DEPLOYMENT.md](./docs/DEPLOYMENT.md)
-   - Base directory: `client`
-   - Build command: `npm install && npm run build`
-   - Publish directory: `client/dist`
-   - **PENTING**: Set environment variable `VITE_API_URL` dengan URL backend Railway
-
-3. **Konfigurasi WebSocket:**
-   - Lihat panduan: [WEBSOCKET_FIX.md](./docs/WEBSOCKET_FIX.md)
-   - Pastikan `VITE_API_URL` sudah di-set dengan benar di Netlify
-   - WebSocket akan otomatis menggunakan polling sebagai fallback di Netlify
-
-### Dokumentasi Deployment
-
-- 📘 [DEPLOYMENT.md](./docs/DEPLOYMENT.md) - Panduan deployment umum
-- 🚂 [RAILWAY_SETUP.md](./docs/RAILWAY_SETUP.md) - Setup backend di Railway
-- 🌐 [NETLIFY_FIX.md](./docs/NETLIFY_FIX.md) - Fix masalah di Netlify
-- 🔌 [WEBSOCKET_FIX.md](./docs/WEBSOCKET_FIX.md) - Fix WebSocket auto-update
-- 🔧 [TROUBLESHOOTING.md](./docs/TROUBLESHOOTING.md) - Troubleshooting guide
+### Frontend
+- Dapat di-deploy di Netlify, Vercel, atau static hosting lainnya.
+- Set `VITE_API_URL` mengarah ke URL backend Anda.
 
 ## ⚙️ Environment Variables
 
-### Frontend (Netlify)
+### Frontend
+| Variable      | Deskripsi                                  | Default |
+| ------------- | ------------------------------------------ | ------- |
+| `VITE_API_URL` | URL backend (API & WebSocket)             | -       |
+| `VITE_PIN_CODE`| PIN 4-digit untuk proteksi transaksi       | `6745`  |
 
-| Variable      | Deskripsi                          | Contoh                                    | Wajib |
-| ------------- | ---------------------------------- | ----------------------------------------- | ----- |
-| `VITE_API_URL` | URL backend Railway (tanpa trailing slash) | `https://cashflow-backend.up.railway.app` | ✅ Ya |
-| `VITE_PIN_CODE` | PIN 4-digit untuk proteksi transaksi | `6745` | ❌ Opsional (default: `6745`) |
-
-### Backend (Railway/Server)
-
-| Variable      | Deskripsi                          | Contoh                                    | Wajib |
-| ------------- | ---------------------------------- | ----------------------------------------- | ----- |
-| `DATABASE_URL` | PostgreSQL connection string | `postgresql://user:pass@host:5432/db` | ✅ Ya |
-| `JWT_SECRET`   | Secret key untuk JWT token | `your-secret-key` | ✅ Ya |
-| `JWT_EXPIRES_IN` | JWT token expiration | `7d` | ❌ Opsional (default: `7d`) |
-| `PORT`         | Port server                        | `4000` | ❌ Opsional (default: `4000`) |
-| `NODE_ENV`     | Environment mode                   | `production` | ❌ Opsional |
-
-## 🔐 Keamanan
-
-- **PIN Protection**: Semua operasi penting (create, update, delete, export) memerlukan PIN 4-digit
-- **Default PIN**: `6745` (dapat diubah melalui environment variable `VITE_PIN_CODE` di Netlify)
-- **CORS**: Backend dikonfigurasi untuk menerima request dari semua origin (untuk production, pertimbangkan membatasi ke domain Netlify)
-
-### Mengubah PIN
-
-Untuk mengubah PIN di production:
-
-1. Buka Netlify Dashboard → Site settings → Environment variables
-2. Tambahkan variable baru:
-   - **Key**: `VITE_PIN_CODE`
-   - **Value**: PIN 4-digit Anda (contoh: `1234`)
-   - **Scope**: All scopes
-3. Rebuild dengan "Clear cache and deploy site"
-
-**Catatan**: Jika `VITE_PIN_CODE` tidak di-set, aplikasi akan menggunakan PIN default `6745`.
-
-## 📝 Catatan Penting
-
-- **Database Persistence**: Pastikan folder `data/` menggunakan persistent storage/volume di Railway agar database tidak hilang saat restart
-- **WebSocket di Netlify**: Netlify tidak support WebSocket native, jadi Socket.IO akan menggunakan polling sebagai fallback (tetap memberikan real-time update)
-- **Backup**: Disarankan untuk melakukan backup berkala untuk file `data/cashflow.db`
-- **Tidak ada data bawaan**: Semua transaksi berasal dari input user
+### Backend
+| Variable      | Deskripsi                          | Wajib |
+| ------------- | ---------------------------------- | ----- |
+| `JWT_SECRET`   | Secret key untuk JWT token         | ✅ Ya  |
+| `PORT`         | Port server (default: 4000)        | ❌ Tidak|
 
 ## 🛠️ Teknologi yang Digunakan
 
-- **Backend**: Node.js, Express, Socket.IO, SQLite (sql.js)
-- **Frontend**: React, Vite, Tailwind CSS, Socket.IO Client
-- **Deployment**: Netlify (frontend), Railway (backend)
+- **Backend**: Node.js, Express, Socket.IO, SQLite3
+- **Frontend**: React, Vite, Tailwind CSS, Recharts
+- **Auth**: JWT (jsonwebtoken), bcrypt
 
 ## 📄 License
 
