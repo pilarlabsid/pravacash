@@ -24,12 +24,6 @@ Dashboard arus kas modern dengan backend **Node.js + Express + PostgreSQL** sert
 │   │   ├── App.jsx      # Komponen utama dengan WebSocket
 │   │   └── lib/
 │   └── package.json
-├── docs/                # Dokumentasi
-│   ├── DEPLOYMENT.md
-│   ├── RAILWAY_SETUP.md
-│   ├── NETLIFY_FIX.md
-│   ├── WEBSOCKET_FIX.md
-│   └── ...
 ├── src/
 │   ├── database.js      # Helper PostgreSQL (create/read/update/delete)
 │   └── auth.js         # Authentication helpers (JWT, bcrypt)

@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: cashflow-backend
+    name: pravacash-backend
     env: node
     plan: free
     buildCommand: npm install
@@ -11,7 +11,7 @@ services:
       - key: PORT
         value: 10000
     disk:
-      name: cashflow-data
+      name: pravacash-data
       mountPath: /opt/render/project/data
       sizeGB: 1
 
