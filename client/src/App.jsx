@@ -556,12 +556,7 @@ function App() {
     }
   };
 
-  const handleLogout = () => {
-    // Tampilkan modal konfirmasi
-    setIsLogoutConfirmOpen(true);
-  };
-
-  const confirmLogout = () => {
+  const performLogout = (silent = false) => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     setToken(null);
@@ -570,7 +565,18 @@ function App() {
     setEntries([]);
     setIsAdminPage(false);
     setIsLogoutConfirmOpen(false);
-    setToast({ type: "success", message: "Anda telah logout." });
+    if (!silent) {
+      setToast({ type: "success", message: "Anda telah logout." });
+    }
+  };
+
+  const handleLogout = () => {
+    // Tampilkan modal konfirmasi
+    setIsLogoutConfirmOpen(true);
+  };
+
+  const confirmLogout = () => {
+    performLogout();
   };
 
   // Verify token on mount
@@ -594,7 +600,7 @@ function App() {
         });
 
         if (response.status === 401) {
-          handleLogout();
+          performLogout(true);
           setAuthLoading(false);
           return;
         }
@@ -612,11 +618,11 @@ function App() {
             fetchSettings();
           }, 100);
         } else {
-          handleLogout();
+          performLogout(true);
         }
       } catch (error) {
         console.error("Token verification failed:", error);
-        handleLogout();
+        performLogout(true);
       } finally {
         setAuthLoading(false);
       }
