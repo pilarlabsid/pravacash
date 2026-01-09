@@ -25,7 +25,6 @@ Dashboard arus kas modern dengan backend **Node.js + Express + SQLite** serta fr
 │   │   ├── App.jsx      # Komponen utama dengan WebSocket & Dashboard
 │   │   └── lib/
 │   └── package.json
-├── docs/                # Dokumentasi
 ├── src/
 │   ├── database.sqlite.js # Helper SQLite (create/read/update/delete)
 │   └── auth.js          # Authentication helpers (JWT, bcrypt)
