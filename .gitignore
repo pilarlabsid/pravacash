@@ -5,10 +5,8 @@ client/dist
 dist
 *.log
 
-# SQLite Database
-data/*.db
-data/*.db-shm
-data/*.db-wal
+# Upload folder lokal (digantikan Cloudinary di production)
+public/uploads/
 
 # Environment variables
 .env
