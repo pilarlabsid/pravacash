@@ -6,7 +6,7 @@ const path = require("path");
 const express = require("express");
 const cors = require("cors");
 const morgan = require("morgan");
-const database = require("./src/database.sqlite");
+const database = require("./src/database");
 const auth = require("./src/auth");
 const os = require("os");
 const http = require("http");
@@ -81,11 +81,11 @@ const broadcastAdminUpdate = async () => {
     if (adminUsers.length === 0) {
       return; // No admin online, skip broadcast
     }
-
+    
     // Get all admin stats
     const stats = await database.getAdminStats();
     const allTransactions = await database.getAllTransactions();
-
+    
     // Broadcast ke semua admin yang sedang online
     adminUsers.forEach(admin => {
       const sockets = userSockets.get(admin.id) || [];
@@ -153,10 +153,10 @@ app.post(
             role: "admin",
           },
         };
-
+        
         // Broadcast update ke semua admin
         await broadcastAdminUpdate();
-
+        
         return res.json(result);
       }
 
@@ -180,10 +180,10 @@ app.post(
           role: "admin",
         },
       };
-
+      
       // Broadcast update ke semua admin
       await broadcastAdminUpdate();
-
+      
       return res.json(result);
     } catch (error) {
       return res.status(400).json({ message: error.message });
@@ -207,7 +207,7 @@ app.post(
       const result = await auth.register({ email, password, name });
       // Broadcast update ke semua admin (untuk new user)
       await broadcastAdminUpdate();
-
+      
       return res.status(201).json(result);
     } catch (error) {
       return res.status(400).json({ message: error.message });
@@ -330,10 +330,10 @@ app.put(
         pinEnabled: updated.pin_enabled || false,
         timezone: updated.timezone || 'Asia/Jakarta',
       };
-
+      
       // Broadcast update ke semua admin
       await broadcastAdminUpdate();
-
+      
       return res.json(result);
     } catch (error) {
       return res.status(400).json({ message: error.message });
@@ -374,10 +374,10 @@ app.put(
         pinEnabled: updated.pin_enabled || false,
         message: pin ? "PIN berhasil diatur." : "PIN berhasil dihapus.",
       };
-
+      
       // Broadcast update ke semua admin
       await broadcastAdminUpdate();
-
+      
       return res.json(result);
     } catch (error) {
       return res.status(400).json({ message: error.message });
@@ -398,7 +398,7 @@ app.post(
     }
 
     const isValid = await database.verifyUserPin(userId, pin);
-
+    
     if (!isValid) {
       return res.status(401).json({ message: "PIN salah. Coba lagi." });
     }
@@ -488,14 +488,14 @@ app.get(
   asyncHandler(async (req, res) => {
     const { id } = req.params;
     const user = await database.getUserById(id);
-
+    
     if (!user) {
       return res.status(404).json({ message: "User tidak ditemukan." });
     }
-
+    
     // Get user transactions
     const transactions = await database.listTransactions(id);
-
+    
     res.json({
       ...user,
       transactions,
@@ -511,30 +511,30 @@ app.put(
   asyncHandler(async (req, res) => {
     const { id } = req.params;
     const { name, email, role } = req.body ?? {};
-
+    
     // Validate role if provided
     if (role && !['user', 'admin'].includes(role)) {
       return res.status(400).json({ message: "Role harus 'user' atau 'admin'." });
     }
-
+    
     try {
       // Update profile if name or email provided
       if (name || email) {
         await database.updateUserProfile({ id, name, email });
       }
-
+      
       // Update role if provided
       if (role) {
         await database.updateUserRole(id, role);
       }
-
+      
       // Get updated user
       const updatedUser = await database.getUserById(id);
-
+      
       if (!updatedUser) {
         return res.status(404).json({ message: "User tidak ditemukan." });
       }
-
+      
       const result = {
         id: updatedUser.id,
         email: updatedUser.email,
@@ -543,10 +543,10 @@ app.put(
         pinEnabled: updatedUser.pin_enabled || false,
         createdAt: updatedUser.created_at,
       };
-
+      
       // Broadcast update ke semua admin
       await broadcastAdminUpdate();
-
+      
       res.json(result);
     } catch (error) {
       return res.status(400).json({ message: error.message });
@@ -561,26 +561,26 @@ app.delete(
   auth.requireAdmin,
   asyncHandler(async (req, res) => {
     const { id } = req.params;
-
+    
     // Prevent admin from deleting themselves
     if (id === req.user.userId) {
       return res.status(400).json({ message: "Tidak bisa menghapus akun sendiri." });
     }
-
+    
     const deletedUser = await database.deleteUser(id);
-
+    
     if (!deletedUser) {
       return res.status(404).json({ message: "User tidak ditemukan." });
     }
-
+    
     const result = {
       message: "User berhasil dihapus.",
       user: deletedUser,
     };
-
+    
     // Broadcast update ke semua admin
     await broadcastAdminUpdate();
-
+    
     res.json(result);
   })
 );
@@ -645,7 +645,7 @@ app.post(
 
     // Broadcast update ke user-specific clients
     await broadcastTransactionUpdate(req.user.userId);
-
+    
     // Broadcast update ke semua admin
     await broadcastAdminUpdate();
 
@@ -673,7 +673,7 @@ app.delete(
 
     // Broadcast update ke user-specific clients
     await broadcastTransactionUpdate(userId);
-
+    
     // Broadcast update ke semua admin
     await broadcastAdminUpdate();
 
@@ -689,7 +689,7 @@ app.delete(
 
     // Broadcast update ke user-specific clients
     await broadcastTransactionUpdate(req.user.userId);
-
+    
     // Broadcast update ke semua admin
     await broadcastAdminUpdate();
 

@@ -1,6 +1,6 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-const database = require("./database.sqlite");
+const database = require("./database");
 
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-in-production";
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "7d";
@@ -123,7 +123,7 @@ function requireAdmin(req, res, next) {
   if (String(req.user.role || '').toLowerCase() !== 'admin') {
     return res.status(403).json({ message: "Akses ditolak. Hanya admin yang bisa mengakses." });
   }
-
+  
   next();
 }
 
