@@ -1,17 +1,25 @@
 services:
   - type: web
-    name: pravacash-backend
+    name: pravacash
     env: node
     plan: free
-    buildCommand: npm install
+    region: singapore
+    buildCommand: npm install && npm run client:build && npx prisma generate
     startCommand: npm start
     envVars:
       - key: NODE_ENV
         value: production
       - key: PORT
         value: 10000
-    disk:
-      name: pravacash-data
-      mountPath: /opt/render/project/data
-      sizeGB: 1
-
+      - key: DATABASE_URL
+        sync: false   # Isi manual di Render dashboard (Neon connection string)
+      - key: JWT_SECRET
+        generateValue: true  # Render akan generate otomatis
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false   # Isi manual di Render dashboard
+      - key: CLOUDINARY_API_KEY
+        sync: false   # Isi manual di Render dashboard
+      - key: CLOUDINARY_API_SECRET
+        sync: false   # Isi manual di Render dashboard

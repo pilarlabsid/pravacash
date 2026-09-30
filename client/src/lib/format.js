@@ -10,26 +10,42 @@ export const formatDate = (dateString, timezone = 'Asia/Jakarta') => {
   const date = new Date(dateString);
   if (Number.isNaN(date.getTime())) return "-";
 
-  // Format menggunakan timezone dari parameter (default: Asia/Jakarta)
   return date.toLocaleDateString("id-ID", {
     day: "2-digit",
     month: "short",
     year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
     timeZone: timezone,
   });
 };
 
-export const getToday = (timezone = 'Asia/Jakarta') => {
-  // Get today's date dalam timezone yang ditentukan (default: Asia/Jakarta)
+export const getNow = (timezone = 'Asia/Jakarta') => {
   const now = new Date();
+  
+  // Format to YYYY-MM-DDTHH:mm for datetime-local input
   const formatter = new Intl.DateTimeFormat("en-CA", {
     timeZone: timezone,
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
   });
   
-  // Format sebagai YYYY-MM-DD
-  return formatter.format(now);
+  const parts = formatter.formatToParts(now);
+  const getPart = (type) => parts.find(p => p.type === type)?.value || '';
+  
+  const year = getPart('year');
+  const month = getPart('month');
+  const day = getPart('day');
+  const hour = getPart('hour');
+  const minute = getPart('minute');
+  
+  // Fix 24:00 to 00:00 bug in some browsers/locales
+  const formattedHour = hour === '24' ? '00' : hour;
+
+  return `${year}-${month}-${day}T${formattedHour}:${minute}`;
 };
 

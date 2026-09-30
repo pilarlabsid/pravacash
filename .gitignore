@@ -6,6 +6,9 @@ data/*.db
 dist
 *.log
 
+# Upload folder lokal (digantikan Cloudinary di production)
+public/uploads/
+
 # Environment variables
 .env
 .env.local

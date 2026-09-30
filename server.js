@@ -11,6 +11,27 @@ const auth = require("./src/auth");
 const os = require("os");
 const http = require("http");
 const { Server } = require("socket.io");
+const multer = require("multer");
+const cloudinary = require("cloudinary").v2;
+
+// Konfigurasi Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
+// Gunakan memoryStorage agar file tidak disimpan ke disk
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+  fileFilter: (req, file, cb) => {
+    if (!file.mimetype.startsWith('image/')) {
+      return cb(new Error('Hanya file gambar yang diizinkan.'), false);
+    }
+    cb(null, true);
+  }
+});
 
 const PORT = process.env.PORT || 4000;
 
@@ -55,7 +76,7 @@ const broadcastAdminUpdate = async () => {
   try {
     // Get all admin users
     const allUsers = await database.getAllUsers();
-    const adminUsers = allUsers.filter(u => u.role === 'admin');
+    const adminUsers = allUsers.filter((u) => String(u.role || '').toLowerCase() === 'admin');
     
     if (adminUsers.length === 0) {
       return; // No admin online, skip broadcast
@@ -83,6 +104,7 @@ const broadcastAdminUpdate = async () => {
 app.use(cors());
 app.use(express.json());
 app.use(morgan("dev"));
+// Catatan: /uploads static route dihapus karena sekarang menggunakan Cloudinary
 
 const asyncHandler = (handler) => (req, res, next) =>
   Promise.resolve(handler(req, res, next)).catch(next);
@@ -410,6 +432,54 @@ app.get(
   })
 );
 
+// Create new user (admin only)
+app.post(
+  "/api/admin/users",
+  auth.authenticateToken,
+  auth.requireAdmin,
+  asyncHandler(async (req, res) => {
+    const { email, password, name, role } = req.body ?? {};
+
+    if (!email || !password || !name) {
+      return res.status(400).json({ message: "Email, password, dan nama wajib diisi." });
+    }
+    if (password.length < 6) {
+      return res.status(400).json({ message: "Password minimal 6 karakter." });
+    }
+    if (role && !['user', 'admin'].includes(role)) {
+      return res.status(400).json({ message: "Role harus 'user' atau 'admin'." });
+    }
+
+    try {
+      const passwordHash = await auth.hashPassword(password);
+      const newUser = await database.createUser({ email, passwordHash, name });
+
+      // Set role jika bukan default user
+      if (role && role !== 'user') {
+        await database.updateUserRole(newUser.id, role);
+      }
+
+      const createdUser = await database.getUserById(newUser.id);
+
+      // Broadcast update ke semua admin
+      await broadcastAdminUpdate();
+
+      return res.status(201).json({
+        message: "User berhasil dibuat.",
+        user: {
+          id: createdUser.id,
+          email: createdUser.email,
+          name: createdUser.name,
+          role: createdUser.role || 'user',
+        },
+      });
+    } catch (error) {
+      return res.status(400).json({ message: error.message });
+    }
+  })
+);
+
+
 // Get user detail by ID
 app.get(
   "/api/admin/users/:id",
@@ -540,7 +610,7 @@ app.post(
   "/api/transactions",
   auth.authenticateToken,
   asyncHandler(async (req, res) => {
-    const { description, type, amount, date } = req.body ?? {};
+    const { description, category, type, amount, date, proof_url } = req.body ?? {};
 
     if (
       typeof description !== "string" ||
@@ -566,9 +636,11 @@ app.post(
     const id = await database.createTransaction({
       userId: req.user.userId,
       description: description.trim(),
+      category: category ? category.trim() : null,
       type,
       amount: Math.round(numericAmount),
       date,
+      proof_url,
     });
 
     // Broadcast update ke user-specific clients
@@ -629,7 +701,7 @@ app.put(
   "/api/transactions/:id",
   auth.authenticateToken,
   asyncHandler(async (req, res) => {
-    const { description, type, amount, date } = req.body ?? {};
+    const { description, category, type, amount, date, proof_url } = req.body ?? {};
     const { id } = req.params;
     const userId = req.user.userId;
 
@@ -664,9 +736,11 @@ app.put(
       id,
       userId,
       description: description.trim(),
+      category: category ? category.trim() : null,
       type,
       amount: Math.round(numericAmount),
       date,
+      proof_url,
     });
 
     if (!updated) {
@@ -677,6 +751,36 @@ app.put(
     await broadcastTransactionUpdate(userId);
 
     return res.status(204).send();
+  })
+);
+
+// Upload endpoint - menggunakan Cloudinary
+app.post(
+  "/api/upload",
+  auth.authenticateToken,
+  upload.single("image"),
+  asyncHandler(async (req, res) => {
+    if (!req.file) {
+      return res.status(400).json({ message: "Tidak ada file yang diunggah." });
+    }
+
+    // Upload buffer ke Cloudinary
+    const result = await new Promise((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream(
+        {
+          folder: "pravacash/bukti",
+          resource_type: "image",
+          transformation: [{ quality: "auto", fetch_format: "auto" }],
+        },
+        (error, result) => {
+          if (error) reject(error);
+          else resolve(result);
+        }
+      );
+      stream.end(req.file.buffer);
+    });
+
+    res.json({ url: result.secure_url });
   })
 );
 
