@@ -51,7 +51,7 @@ export const AppModals = ({
       <ImportFileModal
         isOpen={txHook.isImportFileOpen} importFile={txHook.importFile} importPreview={txHook.importPreview} importing={txHook.importing}
         setImportFile={txHook.setImportFile} setIsImportFileOpen={txHook.setIsImportFileOpen}
-        handleFileUpload={txHook.handleFileUpload} closeImportFileModal={() => { txHook.setIsImportFileOpen(false); txHook.setImportFile(null); txHook.setImportPreview([]); }}
+        handleFileUpload={txHook.handleFileUpload} downloadImportTemplate={txHook.downloadImportTemplate} closeImportFileModal={() => { txHook.setIsImportFileOpen(false); txHook.setImportFile(null); txHook.setImportPreview([]); }}
       />
 
       <ImportPinModal

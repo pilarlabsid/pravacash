@@ -111,7 +111,7 @@ export const UserTransactionTable = ({
                       <div className="flex items-start justify-between gap-2">
                         <div>
                           <p className="text-[11px] uppercase tracking-wide text-slate-400">
-                            {formatDate(entry.date)}
+                            {formatDate(entry.date, settings.timezone || "Asia/Jakarta")}
                           </p>
                           <p className="text-base font-semibold text-slate-900">
                             {entry.description}

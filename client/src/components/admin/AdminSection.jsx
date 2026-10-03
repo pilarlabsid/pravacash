@@ -9,52 +9,78 @@ const UserTransactionDetail = ({ userGroup, onBack, timezone }) => {
   const totals = { income, expense, balance: income - expense };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 rounded-2xl bg-white p-5 shadow-soft sm:flex-row sm:items-center sm:justify-between">
+    <div className="space-y-5">
+      <div className="flex flex-col gap-3 rounded-2xl bg-white p-4 sm:p-5 shadow-soft sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">Detail transaksi</p>
-          <h2 className="text-2xl font-semibold text-slate-900">{userGroup.user_name}</h2>
-          <p className="text-sm text-slate-500">{userGroup.user_email}</p>
+          <p className="text-xs font-bold uppercase tracking-wider text-emerald-600">Detail Transaksi Pengguna</p>
+          <h2 className="text-xl sm:text-2xl font-bold text-slate-900">{userGroup.user_name}</h2>
+          <p className="text-xs sm:text-sm text-slate-500">{userGroup.user_email}</p>
         </div>
-        <button type="button" onClick={onBack} className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50">
+        <button
+          type="button"
+          onClick={onBack}
+          className="self-start sm:self-auto rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-xs sm:text-sm font-bold text-slate-700 transition hover:bg-slate-100 active:scale-95"
+        >
           ← Kembali ke daftar
         </button>
       </div>
 
-      <UserFinancialCharts entries={userGroup.transactions} totals={totals} />
+      <UserFinancialCharts entries={userGroup.transactions} totals={totals} timezone={timezone} />
 
       <div className="overflow-hidden rounded-2xl bg-white shadow-soft">
-        <div className="border-b border-slate-100 px-5 py-4">
-          <p className="text-sm font-semibold text-slate-700">{userGroup.transactions.length} transaksi</p>
+        <div className="border-b border-slate-100 px-4 py-3.5 sm:px-5">
+          <p className="text-xs sm:text-sm font-bold text-slate-700">{userGroup.transactions.length} transaksi</p>
         </div>
-        <div className="max-h-[500px] overflow-y-auto">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-slate-100">
-              <thead className="sticky top-0 z-10 bg-slate-50">
-                <tr>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Tanggal</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Deskripsi</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Jenis</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">Nominal</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 bg-white">
-                {[...userGroup.transactions]
-                  .sort((a, b) => new Date(b.date) - new Date(a.date))
-                  .map((transaction) => (
-                    <tr key={transaction.id}>
-                      <td className="whitespace-nowrap px-4 py-3 text-sm text-slate-600">{formatDate(transaction.date, timezone)}</td>
-                      <td className="px-4 py-3 text-sm text-slate-600">
-                        <p className="font-semibold text-slate-800">{transaction.description}</p>
-                        <p className="mt-0.5 text-xs text-slate-400">{transaction.category || 'Lainnya'}</p>
-                      </td>
-                      <td className="px-4 py-3"><Badge label={transaction.type} variant={transaction.type} /></td>
-                      <td className="whitespace-nowrap px-4 py-3 text-right text-sm font-semibold text-slate-900">{formatCurrency(transaction.amount)}</td>
-                    </tr>
-                  ))}
-              </tbody>
-            </table>
-          </div>
+
+        {/* Desktop Table */}
+        <div className="hidden md:block max-h-[500px] overflow-y-auto">
+          <table className="min-w-full divide-y divide-slate-100">
+            <thead className="sticky top-0 z-10 bg-slate-50">
+              <tr>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Tanggal</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Deskripsi</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Jenis</th>
+                <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">Nominal</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 bg-white">
+              {[...userGroup.transactions]
+                .sort((a, b) => new Date(b.date) - new Date(a.date))
+                .map((transaction) => (
+                  <tr key={transaction.id} className="hover:bg-slate-50 transition-colors">
+                    <td className="whitespace-nowrap px-4 py-3 text-sm text-slate-600">{formatDate(transaction.date, timezone)}</td>
+                    <td className="px-4 py-3 text-sm text-slate-600">
+                      <p className="font-semibold text-slate-800">{transaction.description}</p>
+                      <p className="mt-0.5 text-xs text-slate-400">{transaction.category || 'Lainnya'}</p>
+                    </td>
+                    <td className="px-4 py-3"><Badge label={transaction.type} variant={transaction.type} /></td>
+                    <td className="whitespace-nowrap px-4 py-3 text-right text-sm font-semibold text-slate-900">{formatCurrency(transaction.amount)}</td>
+                  </tr>
+                ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Mobile Transaction List */}
+        <div className="md:hidden divide-y divide-slate-100 p-2 space-y-2">
+          {[...userGroup.transactions]
+            .sort((a, b) => new Date(b.date) - new Date(a.date))
+            .map((transaction) => (
+              <div key={transaction.id} className="p-3 bg-slate-50/70 rounded-xl">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold text-slate-900 truncate">{transaction.description}</p>
+                    <p className="text-[11px] text-slate-400 mt-0.5">{formatDate(transaction.date, timezone)} • {transaction.category || 'Lainnya'}</p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className={`text-sm font-extrabold ${transaction.type === 'income' ? 'text-emerald-600' : 'text-rose-600'}`}>
+                      {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
+                    </p>
+                    <Badge label={transaction.type} variant={transaction.type} size="sm" />
+                  </div>
+                </div>
+              </div>
+            ))}
         </div>
       </div>
     </div>
@@ -81,40 +107,40 @@ export const AdminSection = ({
     <>
       {/* Admin Page - Auto show if user is admin */}
       {String(user?.role || '').toLowerCase() === 'admin' && (
-        <div className="space-y-6">
-              {/* Admin Tabs */}
-              <div className="flex gap-2 rounded-2xl bg-white p-2 shadow-soft">
-                <button
-                  type="button"
-                  onClick={() => { setAdminTab("dashboard"); setSelectedTransactionUser(null); }}
-                  className={`min-w-0 flex-1 truncate rounded-xl px-3 py-3 text-sm font-semibold transition sm:px-4 ${adminTab === "dashboard"
-                    ? "bg-indigo-600 text-white"
-                    : "text-slate-600 hover:bg-slate-50"
-                    }`}
-                >
-                  Dashboard
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setAdminTab("users"); setSelectedTransactionUser(null); }}
-                  className={`min-w-0 flex-1 truncate rounded-xl px-3 py-3 text-sm font-semibold transition sm:px-4 ${adminTab === "users"
-                    ? "bg-indigo-600 text-white"
-                    : "text-slate-600 hover:bg-slate-50"
-                    }`}
-                >
-                  Users ({adminUsers.length})
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setAdminTab("transactions"); setSelectedTransactionUser(null); }}
-                  className={`min-w-0 flex-1 truncate rounded-xl px-3 py-3 text-sm font-semibold transition sm:px-4 ${adminTab === "transactions"
-                    ? "bg-indigo-600 text-white"
-                    : "text-slate-600 hover:bg-slate-50"
-                    }`}
-                >
-                  Transactions ({adminTransactions.length})
-                </button>
-              </div>
+        <div className="space-y-5">
+          {/* Admin Tabs */}
+          <div className="flex gap-1.5 rounded-2xl bg-white p-1.5 shadow-soft border border-slate-100">
+            <button
+              type="button"
+              onClick={() => { setAdminTab("dashboard"); setSelectedTransactionUser(null); }}
+              className={`min-w-0 flex-1 truncate rounded-xl px-2.5 py-2.5 text-xs sm:text-sm font-bold transition sm:px-4 sm:py-3 ${adminTab === "dashboard"
+                ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-sm"
+                : "text-slate-600 hover:bg-slate-50"
+                }`}
+            >
+              Dashboard
+            </button>
+            <button
+              type="button"
+              onClick={() => { setAdminTab("users"); setSelectedTransactionUser(null); }}
+              className={`min-w-0 flex-1 truncate rounded-xl px-2.5 py-2.5 text-xs sm:text-sm font-bold transition sm:px-4 sm:py-3 ${adminTab === "users"
+                ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-sm"
+                : "text-slate-600 hover:bg-slate-50"
+                }`}
+            >
+              Users ({adminUsers.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => { setAdminTab("transactions"); setSelectedTransactionUser(null); }}
+              className={`min-w-0 flex-1 truncate rounded-xl px-2.5 py-2.5 text-xs sm:text-sm font-bold transition sm:px-4 sm:py-3 ${adminTab === "transactions"
+                ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-sm"
+                : "text-slate-600 hover:bg-slate-50"
+                }`}
+            >
+              Transaksi ({adminTransactions.length})
+            </button>
+          </div>
 
               {/* Admin Dashboard Tab */}
               {adminTab === "dashboard" && (
@@ -130,7 +156,7 @@ export const AdminSection = ({
                 ) : adminStats ? (
                   <div className="space-y-6">
                     {/* Key Metrics - System & User Activity */}
-                    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 lg:grid-cols-4 sm:gap-6">
                       <StatCard
                         label="Total Users"
                         value={adminStats.totalUsers}
@@ -149,7 +175,7 @@ export const AdminSection = ({
                       <StatCard
                         label="Total Transactions"
                         value={adminStats.totalTransactions}
-                        className="from-blue-500 via-blue-400 to-blue-500 text-white"
+                        className="from-teal-600 via-teal-500 to-emerald-600 text-white"
                       />
                     </div>
 
@@ -172,7 +198,7 @@ export const AdminSection = ({
                           </div>
                           <div className="mt-3 flex justify-between border-t border-slate-200 pt-2 text-sm font-semibold">
                             <span className="text-slate-900">Avg Transaction Value</span>
-                            <span className="text-indigo-600">
+                            <span className="text-emerald-600 font-bold">
                               {formatCurrency(Math.round(adminStats.avgTransactionValue || 0))}
                             </span>
                           </div>
@@ -452,7 +478,7 @@ export const AdminSection = ({
                                 </td>
                                 <td className="px-4 py-3 text-sm text-slate-600">{u.transaction_count || 0}</td>
                                 <td className="px-4 py-3 text-sm text-slate-500">
-                                  {u.last_login_at ? new Date(u.last_login_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: settings.timezone || 'Asia/Jakarta' }) : 'Never'}
+                                  {u.last_login_at ? formatDate(u.last_login_at, settings.timezone || 'Asia/Jakarta') : 'Never'}
                                 </td>
                                 <td className="px-4 py-3 text-sm text-slate-500">
                                   {new Date(u.created_at).toLocaleDateString('id-ID', { timeZone: settings.timezone || 'Asia/Jakarta' })}

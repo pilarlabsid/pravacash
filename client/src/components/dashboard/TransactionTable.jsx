@@ -112,60 +112,79 @@ export const TransactionTable = ({
 
             {/* Mobile Cards */}
             <div className="md:hidden">
-              <div className="max-h-[400px] overflow-y-auto rounded-2xl border border-slate-100 p-1">
-                <div className="space-y-3">
-                  {runningEntries.map((entry) => (
-                    <div
-                      key={`${entry.id}-mobile`}
-                      className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm"
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0 flex-1">
-                          <p className="text-[11px] uppercase tracking-wide text-slate-400">
-                            {formatDate(entry.date, timezone || "Asia/Jakarta")}
-                          </p>
-                          <p className="text-base font-semibold text-slate-900 truncate">
+              <div className="space-y-3">
+                {runningEntries.map((entry) => (
+                  <div
+                    key={`${entry.id}-mobile`}
+                    className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm transition hover:shadow-md"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-start gap-3 min-w-0">
+                        {/* Transaction Icon Indicator */}
+                        <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${
+                          entry.type === "income" ? "bg-emerald-50 text-emerald-600" : "bg-rose-50 text-rose-600"
+                        }`}>
+                          <span className="text-base font-bold">
+                            {entry.type === "income" ? "↓" : "↑"}
+                          </span>
+                        </div>
+
+                        <div className="min-w-0">
+                          <p className="text-sm font-bold text-slate-900 truncate">
                             {entry.description}
                           </p>
-                          <span className="inline-block mt-1 px-2 py-0.5 text-[10px] font-medium rounded-md bg-slate-100 text-slate-500">
-                            {entry.category || (entry.type === "income" ? "Gaji" : "Lainnya")}
-                          </span>
+                          <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                            <span className="text-[10px] font-semibold text-slate-400">
+                              {formatDate(entry.date, timezone || "Asia/Jakarta")}
+                            </span>
+                            <span className="text-[10px] text-slate-300">•</span>
+                            <span className="px-2 py-0.5 text-[10px] font-semibold rounded-md bg-slate-100 text-slate-600">
+                              {entry.category || (entry.type === "income" ? "Gaji" : "Lainnya")}
+                            </span>
+                          </div>
                           {entry.proof_url && (
-                            <a href={entry.proof_url} target="_blank" rel="noopener noreferrer" className="ml-2 inline-block mt-1 px-2 py-0.5 text-[10px] font-medium rounded-md bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-colors">
-                              Lihat Bukti
+                            <a
+                              href={entry.proof_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="mt-1.5 inline-block text-[11px] font-bold text-emerald-600 hover:underline"
+                            >
+                              Lihat Bukti Foto
                             </a>
                           )}
                         </div>
-                        <div className="flex gap-2 flex-shrink-0">
-                          <button
-                            onClick={() => openModal(entry)}
-                            className="text-xs font-semibold text-slate-500"
-                          >
-                            Edit
-                          </button>
-                          <button
-                            onClick={() => handleDelete(entry.id)}
-                            className="text-xs font-semibold text-rose-500"
-                          >
-                            Hapus
-                          </button>
-                        </div>
                       </div>
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        <Badge
-                          label={`${entry.type === "income" ? "+" : "-"}${formatCurrency(entry.amount)}`}
-                          variant={entry.type}
-                          size="sm"
-                        />
-                        <Badge
-                          label={`Saldo: ${formatCurrency(entry.runningBalance)}`}
-                          variant="neutral"
-                          size="sm"
-                        />
+
+                      {/* Amount & Running Balance */}
+                      <div className="text-right shrink-0">
+                        <p className={`text-sm sm:text-base font-extrabold ${
+                          entry.type === "income" ? "text-emerald-600" : "text-rose-600"
+                        }`}>
+                          {entry.type === "income" ? "+" : "-"}{formatCurrency(entry.amount)}
+                        </p>
+                        <p className="mt-0.5 text-[11px] font-medium text-slate-400">
+                          Saldo: {formatCurrency(entry.runningBalance)}
+                        </p>
                       </div>
                     </div>
-                  ))}
-                </div>
+
+                    {/* Action Buttons */}
+                    <div className="mt-3 flex items-center justify-end gap-2 border-t border-slate-50 pt-2.5">
+                      <button
+                        onClick={() => openModal(entry)}
+                        className="rounded-xl bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-600 transition hover:bg-slate-200 active:scale-95"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDelete(entry.id)}
+                        className="rounded-xl bg-rose-50 px-3 py-1.5 text-xs font-bold text-rose-600 transition hover:bg-rose-100 active:scale-95"
+                      >
+                        Hapus
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           </>

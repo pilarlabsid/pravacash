@@ -1,6 +1,6 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import { formatCurrency, formatDate } from "../lib/format";
+import { formatCurrency, formatDate, getTimezoneLabel } from "../lib/format";
 
 /**
  * Generate PDF report transaksi seperti laporan bank
@@ -10,7 +10,7 @@ import { formatCurrency, formatDate } from "../lib/format";
  * @param {Object} params.user - User data
  * @param {string} params.dateRange - Range tanggal (opsional)
  */
-export const generateTransactionPDF = ({ transactions, summary, user, dateRange = null }) => {
+export const generateTransactionPDF = ({ transactions, summary, user, dateRange = null, timezone = "Asia/Jakarta" }) => {
     const doc = new jsPDF();
 
     // ... (kode header dan summary tetap sama)
@@ -19,7 +19,7 @@ export const generateTransactionPDF = ({ transactions, summary, user, dateRange 
     // HEADER - Logo & Judul
     // ============================================
     // Konfigurasi warna brand
-    const brandColor = [79, 70, 229]; // Indigo-600
+    const brandColor = [4, 120, 87]; // Emerald-700
     const lightGray = [248, 250, 252];
     const darkGray = [51, 65, 85];
     const greenColor = [16, 185, 129]; // Emerald-500
@@ -53,7 +53,7 @@ export const generateTransactionPDF = ({ transactions, summary, user, dateRange 
     doc.setFont("helvetica", "normal");
 
     const currentDate = new Date().toLocaleDateString('id-ID', {
-        timeZone: 'Asia/Jakarta',
+        timeZone: timezone,
         year: 'numeric',
         month: 'long',
         day: 'numeric',
@@ -61,7 +61,7 @@ export const generateTransactionPDF = ({ transactions, summary, user, dateRange 
         minute: '2-digit'
     });
 
-    doc.text(`Tanggal Cetak: ${currentDate} WIB`, 20, yPosition);
+    doc.text(`Tanggal Cetak: ${currentDate} ${getTimezoneLabel(timezone)}`, 20, yPosition);
 
     if (dateRange) {
         doc.text(`Periode: ${dateRange}`, 20, yPosition + 5);
@@ -112,7 +112,7 @@ export const generateTransactionPDF = ({ transactions, summary, user, dateRange 
     doc.setFontSize(8);
     doc.setFont("helvetica", "normal");
     doc.setTextColor(120, 120, 120);
-    doc.text(`${summary.incomeCount || 0} transaksi`, startX + colWidth / 2, yPosition + 28, { align: "center" });
+    doc.text(`${transactions.filter((transaction) => transaction.type === "income").length} transaksi`, startX + colWidth / 2, yPosition + 28, { align: "center" });
 
     // PENGELUARAN
     doc.setFontSize(9);
@@ -128,7 +128,7 @@ export const generateTransactionPDF = ({ transactions, summary, user, dateRange 
     doc.setFontSize(8);
     doc.setFont("helvetica", "normal");
     doc.setTextColor(120, 120, 120);
-    doc.text(`${summary.expenseCount || 0} transaksi`, startX + colWidth + colWidth / 2, yPosition + 28, { align: "center" });
+    doc.text(`${transactions.filter((transaction) => transaction.type === "expense").length} transaksi`, startX + colWidth + colWidth / 2, yPosition + 28, { align: "center" });
 
     // SALDO
     doc.setFontSize(9);
@@ -145,10 +145,120 @@ export const generateTransactionPDF = ({ transactions, summary, user, dateRange 
     doc.setFontSize(8);
     doc.setFont("helvetica", "normal");
     doc.setTextColor(120, 120, 120);
-    doc.text(`Total: ${(summary.incomeCount || 0) + (summary.expenseCount || 0)} transaksi`,
+    doc.text(`Total: ${transactions.length} transaksi`,
         startX + (colWidth * 2) + colWidth / 2, yPosition + 28, { align: "center" });
 
-    yPosition += boxHeight + 12;
+    const monthly = new Map();
+    transactions.forEach((transaction) => {
+        const date = new Date(transaction.date);
+        const parts = new Intl.DateTimeFormat("en-CA", { timeZone: timezone, year: "numeric", month: "2-digit" }).formatToParts(date);
+        const key = `${parts.find((part) => part.type === "year")?.value}-${parts.find((part) => part.type === "month")?.value}`;
+        const current = monthly.get(key) || { income: 0, expense: 0 };
+        current[transaction.type === "income" ? "income" : "expense"] += Number(transaction.amount) || 0;
+        monthly.set(key, current);
+    });
+    const months = [...monthly.entries()].slice(-6);
+    const categoryColors = [[244, 63, 94], [59, 130, 246], [245, 158, 11], [139, 92, 246], [16, 185, 129], [100, 116, 139]];
+    const drawPanel = (x, y, title) => {
+        doc.setFillColor(...lightGray);
+        doc.roundedRect(x, y, 82, 68, 3, 3, "F");
+        doc.setTextColor(...darkGray);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(8);
+        doc.text(title, x + 5, y + 8);
+    };
+    const drawDonut = (centerX, centerY, portions, colors) => {
+        const radius = 12;
+        let start = -Math.PI / 2;
+        doc.setLineWidth(7);
+        portions.forEach((portion, index) => {
+            const end = start + (Math.max(portion, 0) * Math.PI * 2);
+            doc.setDrawColor(...colors[index]);
+            for (let angle = start; angle < end; angle += 0.04) {
+                const next = Math.min(angle + 0.04, end);
+                doc.line(centerX + Math.cos(angle) * radius, centerY + Math.sin(angle) * radius, centerX + Math.cos(next) * radius, centerY + Math.sin(next) * radius);
+            }
+            start = end;
+        });
+    };
+
+    // Empat grafik ditempatkan rapat pada halaman ringkasan pertama.
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(...darkGray);
+    doc.text("GRAFIK RINGKASAN", 20, 116);
+
+    // 1. Grafik 6 bulan terakhir
+    drawPanel(20, 122, "6 BULAN TERAKHIR");
+    const monthlyMax = Math.max(...months.flatMap(([, value]) => [value.income, value.expense]), 1);
+    doc.setDrawColor(203, 213, 225); doc.setLineWidth(0.4); doc.line(27, 162, 96, 162);
+    months.forEach(([key, value], index) => {
+        const x = 29 + index * (64 / Math.max(months.length, 1));
+        doc.setFillColor(...greenColor); doc.roundedRect(x, 162 - (value.income / monthlyMax) * 30, 3.5, Math.max((value.income / monthlyMax) * 30, 0.8), 0.7, 0.7, "F");
+        doc.setFillColor(...redColor); doc.roundedRect(x + 4.5, 162 - (value.expense / monthlyMax) * 30, 3.5, Math.max((value.expense / monthlyMax) * 30, 0.8), 0.7, 0.7, "F");
+        doc.setFont("helvetica", "normal"); doc.setFontSize(5.5); doc.setTextColor(100, 116, 139);
+        doc.text(new Intl.DateTimeFormat("id-ID", { month: "short", timeZone: timezone }).format(new Date(`${key}-01T12:00:00Z`)), x + 4, 168, { align: "center" });
+    });
+    doc.setFontSize(5.5); doc.setTextColor(...greenColor); doc.text(`Masuk ${formatCurrency(summary.income)}`, 27, 173);
+    doc.setTextColor(...redColor); doc.text(`Keluar ${formatCurrency(summary.expense)}`, 62, 173);
+
+    // 2. Tren pemasukan dan pengeluaran bulan ini
+    drawPanel(108, 122, "TREN BULAN INI");
+    const nowParts = new Intl.DateTimeFormat("en-CA", { timeZone: timezone, year: "numeric", month: "2-digit" }).formatToParts(new Date());
+    const currentKey = `${nowParts.find((part) => part.type === "year")?.value}-${nowParts.find((part) => part.type === "month")?.value}`;
+    const trendEntries = [...transactions].filter((transaction) => {
+        const parts = new Intl.DateTimeFormat("en-CA", { timeZone: timezone, year: "numeric", month: "2-digit" }).formatToParts(new Date(transaction.date));
+        return `${parts.find((part) => part.type === "year")?.value}-${parts.find((part) => part.type === "month")?.value}` === currentKey;
+    }).sort((a, b) => new Date(a.date) - new Date(b.date));
+    let trendIncome = 0; let trendExpense = 0;
+    const trendPoints = trendEntries.map((transaction) => {
+        if (transaction.type === "income") trendIncome += Number(transaction.amount) || 0;
+        else trendExpense += Number(transaction.amount) || 0;
+        return [trendIncome, trendExpense];
+    });
+    const trendMax = Math.max(...trendPoints.flatMap((point) => point), 1);
+    const trendX = (index) => 115 + index * (68 / Math.max(trendPoints.length - 1, 1));
+    const trendY = (value) => 162 - (value / trendMax) * 30;
+    doc.setDrawColor(203, 213, 225); doc.setLineWidth(0.4); doc.line(115, 162, 184, 162);
+    trendPoints.forEach((point, index) => {
+        if (!index) return;
+        doc.setDrawColor(...greenColor); doc.setLineWidth(1); doc.line(trendX(index - 1), trendY(trendPoints[index - 1][0]), trendX(index), trendY(point[0]));
+        doc.setDrawColor(...redColor); doc.line(trendX(index - 1), trendY(trendPoints[index - 1][1]), trendX(index), trendY(point[1]));
+    });
+    if (!trendPoints.length) { doc.setFont("helvetica", "normal"); doc.setFontSize(7); doc.setTextColor(100, 116, 139); doc.text("Belum ada transaksi", 149, 147, { align: "center" }); }
+    doc.setFont("helvetica", "normal"); doc.setFontSize(5.5); doc.setTextColor(...greenColor); doc.text(`Masuk ${formatCurrency(trendIncome)}`, 115, 173);
+    doc.setTextColor(...redColor); doc.text(`Keluar ${formatCurrency(trendExpense)}`, 151, 173);
+
+    // 3. Rasio pemasukan dan pengeluaran
+    drawPanel(20, 194, "RASIO ARUS KAS");
+    const totalFlow = Number(summary.income || 0) + Number(summary.expense || 0);
+    const incomeRatio = totalFlow ? Number(summary.income || 0) / totalFlow : 0;
+    drawDonut(61, 222, [incomeRatio, 1 - incomeRatio], [greenColor, redColor]);
+    doc.setFont("helvetica", "bold"); doc.setFontSize(9); doc.setTextColor(...darkGray); doc.text(`${Math.round(incomeRatio * 100)}%`, 61, 224, { align: "center" });
+    doc.setFont("helvetica", "normal"); doc.setFontSize(5.5); doc.setTextColor(...greenColor); doc.text(`Pemasukan ${formatCurrency(summary.income)}`, 27, 243);
+    doc.setTextColor(...redColor); doc.text(`Pengeluaran ${formatCurrency(summary.expense)}`, 27, 250);
+
+    // 4. Pengeluaran berdasarkan kategori bulan ini
+    drawPanel(108, 194, "PENGELUARAN KATEGORI");
+    const categoryTotals = new Map();
+    trendEntries.filter((transaction) => transaction.type === "expense").forEach((transaction) => {
+        const category = transaction.category || "Lainnya";
+        categoryTotals.set(category, (categoryTotals.get(category) || 0) + (Number(transaction.amount) || 0));
+    });
+    const categories = [...categoryTotals.entries()].sort((a, b) => b[1] - a[1]);
+    const categoryTotal = categories.reduce((sum, [, amount]) => sum + amount, 0);
+    if (categoryTotal) {
+        drawDonut(149, 222, categories.map(([, amount]) => amount / categoryTotal), categories.map((_, index) => categoryColors[index % categoryColors.length]));
+        categories.slice(0, 3).forEach(([category], index) => {
+            const amount = categories[index][1];
+            const percentage = Math.round((amount / categoryTotal) * 100);
+            doc.setFillColor(...categoryColors[index % categoryColors.length]); doc.rect(116, 241 + index * 5, 2.5, 2.5, "F");
+            doc.setFont("helvetica", "normal"); doc.setFontSize(4.8); doc.setTextColor(100, 116, 139); doc.text(`${category.slice(0, 11)} ${percentage}% ${formatCurrency(amount)}`, 121, 243.5 + index * 5);
+        });
+    } else { doc.setFont("helvetica", "normal"); doc.setFontSize(7); doc.setTextColor(100, 116, 139); doc.text("Belum ada pengeluaran", 149, 222, { align: "center" }); }
+
+    doc.addPage();
+    yPosition = 20;
 
     // ============================================
     // RIWAYAT TRANSAKSI
@@ -161,11 +271,12 @@ export const generateTransactionPDF = ({ transactions, summary, user, dateRange 
     yPosition += 5;
 
     // Prepare table data
-    const tableData = transactions
+    const sortedTransactions = [...transactions]
         .sort((a, b) => new Date(b.date) - new Date(a.date))
+    const tableData = sortedTransactions
         .map((transaction, index) => [
             index + 1,
-            formatDate(transaction.date),
+            formatDate(transaction.date, timezone),
             transaction.description,
             transaction.type === 'income' ? 'Pemasukan' : 'Pengeluaran',
             transaction.type === 'income'
@@ -200,7 +311,7 @@ export const generateTransactionPDF = ({ transactions, summary, user, dateRange 
         didParseCell: function (data) {
             // Warna untuk kolom jumlah
             if (data.column.index === 4 && data.section === 'body') {
-                const rowData = transactions[data.row.index];
+                const rowData = sortedTransactions[data.row.index];
                 if (rowData) {
                     if (rowData.type === 'income') {
                         data.cell.styles.textColor = greenColor;
@@ -212,7 +323,7 @@ export const generateTransactionPDF = ({ transactions, summary, user, dateRange 
 
             // Warna untuk kolom tipe
             if (data.column.index === 3 && data.section === 'body') {
-                const rowData = transactions[data.row.index];
+                const rowData = sortedTransactions[data.row.index];
                 if (rowData) {
                     if (rowData.type === 'income') {
                         data.cell.styles.fillColor = [209, 250, 229]; // green-100

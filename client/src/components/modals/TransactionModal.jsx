@@ -11,79 +11,111 @@ export const TransactionModal = ({
   closeModal, handlePinBack, confirmResetWithPin, confirmDeleteWithPin, confirmExportWithPin,
 }) => {
   const [isUploading, setIsUploading] = useState(false);
+  const [isProofSectionOpen, setIsProofSectionOpen] = useState(false);
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 px-4">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-slate-900/60 p-0 sm:p-4 backdrop-blur-sm transition-opacity">
       <div
         ref={modalRef}
-        className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl sm:p-8"
+        className="w-full max-w-lg max-h-[92vh] sm:max-h-[88vh] overflow-y-auto rounded-t-[2rem] sm:rounded-3xl bg-white p-5 sm:p-8 shadow-2xl transition-all"
       >
-        <div className="mb-5 flex items-start justify-between gap-3">
+        {/* Mobile handle indicator */}
+        <div className="w-10 h-1 bg-slate-200 rounded-full mx-auto mb-3 sm:hidden" />
+
+        <div className="mb-3 flex items-start justify-between gap-3 sm:mb-5">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+            <p className="text-xs font-bold uppercase tracking-wider text-emerald-600">
               {isPinStep ? "Keamanan PIN" : "Input Transaksi"}
             </p>
-            <h2 className="text-2xl font-semibold text-slate-900">
+            <h2 className="text-xl sm:text-2xl font-bold text-slate-900">
               {modalTitle}
             </h2>
             {modalSubtitle && (
-              <p className="text-sm text-slate-500">{modalSubtitle}</p>
+              <p className="text-xs sm:text-sm text-slate-500 mt-0.5">{modalSubtitle}</p>
             )}
           </div>
           <button
             type="button"
             onClick={closeModal}
-            className="rounded-full bg-slate-100 p-2 text-slate-500 transition hover:bg-slate-200"
+            className="rounded-full bg-slate-100 p-2 text-slate-500 transition hover:bg-slate-200 active:scale-95"
             aria-label="Tutup form"
           >
             ✕
           </button>
         </div>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
           {!isPinStep ? (
             <>
+              {/* Jenis Transaksi Segmented Control */}
+              <div className="space-y-1.5">
+                <label className="text-xs sm:text-sm font-semibold text-slate-700">Jenis Transaksi</label>
+                <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-2xl">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleChange({ target: { name: 'type', value: 'expense' } });
+                      handleChange({ target: { name: 'category', value: EXPENSE_CATEGORIES[0] } });
+                    }}
+                    className={`flex items-center justify-center gap-2 px-3 py-2 text-sm font-bold transition-all sm:py-2.5 ${
+                      (form.type || "expense") === "expense"
+                        ? "bg-rose-500 text-white shadow-sm"
+                        : "text-slate-600 hover:text-slate-900"
+                    }`}
+                  >
+                    <span>↑</span> Pengeluaran
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleChange({ target: { name: 'type', value: 'income' } });
+                      handleChange({ target: { name: 'category', value: INCOME_CATEGORIES[0] } });
+                    }}
+                    className={`flex items-center justify-center gap-2 px-3 py-2 text-sm font-bold transition-all sm:py-2.5 ${
+                      form.type === "income"
+                        ? "bg-emerald-600 text-white shadow-sm"
+                        : "text-slate-600 hover:text-slate-900"
+                    }`}
+                  >
+                    <span>↓</span> Pemasukan
+                  </button>
+                </div>
+              </div>
+
+              {/* Nominal */}
+              <Field label="Nominal">
+                <div className="flex items-center rounded-2xl border border-slate-200 bg-slate-50 px-4 py-1.5 focus-within:border-emerald-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-emerald-100 transition sm:py-2">
+                  <span className="text-base font-bold text-emerald-600">Rp</span>
+                  <input
+                    type="text"
+                    name="amount"
+                    inputMode="numeric"
+                    value={
+                      form.amount && form.amount !== "" && !Number.isNaN(Number(form.amount))
+                        ? Number(form.amount).toLocaleString("id-ID")
+                        : ""
+                    }
+                    onChange={handleChange}
+                    className="ml-2 w-full border-none bg-transparent px-0 py-1 text-lg sm:text-xl font-bold text-slate-900 outline-none focus:ring-0 placeholder:text-slate-300"
+                    placeholder="0"
+                    autoFocus={!form.amount}
+                  />
+                </div>
+              </Field>
+
+              {/* Uraian */}
               <Field label="Uraian">
                 <input
                   name="description"
                   value={form.description || ""}
                   onChange={handleChange}
-                  placeholder="Contoh: Warung Biru"
+                  placeholder="Contoh: Belanja bahan baku / Gaji bulanan"
                   className={inputClasses}
                 />
               </Field>
 
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="Nominal">
-                  <div className="flex items-center rounded-2xl border border-slate-200 bg-slate-50 px-3 py-1">
-                    <span className="text-sm font-semibold text-slate-500">Rp</span>
-                    <input
-                      type="text"
-                      name="amount"
-                      inputMode="numeric"
-                      value={
-                        form.amount && form.amount !== "" && !Number.isNaN(Number(form.amount))
-                          ? Number(form.amount).toLocaleString("id-ID")
-                          : ""
-                      }
-                      onChange={handleChange}
-                      className="ml-2 w-full border-none bg-transparent px-0 py-2 text-base font-semibold text-slate-900 outline-none focus:ring-0"
-                      placeholder="0"
-                    />
-                  </div>
-                </Field>
-                <Field label="Jenis">
-                  <select
-                    name="type"
-                    value={form.type || "expense"}
-                    onChange={handleChange}
-                    className={inputClasses}
-                  >
-                    <option value="expense">Pengeluaran</option>
-                    <option value="income">Pemasukan</option>
-                  </select>
-                </Field>
+              <div className="grid gap-3 sm:grid-cols-2">
                 <Field label="Kategori">
                   <select
                     name="category"
@@ -96,7 +128,7 @@ export const TransactionModal = ({
                     ))}
                   </select>
                 </Field>
-                <Field label="Tanggal">
+                <Field label="Tanggal & Waktu">
                   <input
                     type="datetime-local"
                     name="date"
@@ -106,12 +138,26 @@ export const TransactionModal = ({
                   />
                 </Field>
               </div>
+
+              {!form.proof_url && !isProofSectionOpen ? (
+                <button
+                  type="button"
+                  onClick={() => setIsProofSectionOpen(true)}
+                  className="inline-flex items-center gap-2 text-xs font-bold text-emerald-700 transition hover:text-emerald-800"
+                >
+                  <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-emerald-50 text-base">+</span>
+                  Tambah bukti transaksi (opsional)
+                </button>
+              ) : (
               <Field label="Bukti Transaksi (Opsional)">
                 {form.proof_url ? (
-                  <div className="flex items-center gap-3 mt-1 rounded-2xl border border-slate-200 p-2">
-                    <img src={form.proof_url} alt="Bukti" className="h-12 w-12 object-cover rounded-lg" />
+                  <div className="flex items-center gap-3 mt-1 rounded-2xl border border-slate-200 bg-slate-50 p-2">
+                    <img src={form.proof_url} alt="Bukti" className="h-14 w-14 object-cover rounded-xl border border-slate-200" />
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-slate-700 truncate">{form.proof_url.split('/').pop()}</p>
+                      <p className="text-xs font-semibold text-slate-700 truncate">{form.proof_url.split('/').pop()}</p>
+                      <a href={form.proof_url} target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-emerald-600 hover:underline">
+                        Lihat gambar penuh
+                      </a>
                     </div>
                     <button
                       type="button"
@@ -152,17 +198,18 @@ export const TransactionModal = ({
                         setIsUploading(false);
                       }
                     }}
-                    className={`${inputClasses} file:mr-4 file:py-1.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-600 hover:file:bg-indigo-100 ${isUploading ? 'opacity-50 cursor-wait' : ''}`}
+                    className={`${inputClasses} file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 ${isUploading ? 'opacity-50 cursor-wait' : ''}`}
                   />
                 )}
               </Field>
+              )}
             </>
           ) : settings.pinEnabled ? (
-            <div className="space-y-3">
-              <p className="text-center text-sm text-slate-500">
+            <div className="space-y-4 py-2">
+              <p className="text-center text-sm font-medium text-slate-600">
                 {pinDescriptions[pinMode ?? "create"]}
               </p>
-              <Field label="PIN">
+              <Field label="PIN Keamanan">
                 <input
                   type="password"
                   name="pin"
@@ -171,8 +218,9 @@ export const TransactionModal = ({
                   inputMode="numeric"
                   pattern="\d{4}"
                   maxLength={4}
-                  className={`${inputClasses} text-center tracking-[0.5em]`}
+                  className={`${inputClasses} text-center text-2xl font-bold tracking-[0.6em] py-3.5`}
                   placeholder="••••"
+                  autoFocus
                 />
               </Field>
               {pinError && (
@@ -182,18 +230,18 @@ export const TransactionModal = ({
               )}
             </div>
           ) : (
-            <div className="space-y-3">
-              <p className="text-center text-sm text-slate-500">
-                Konfirmasi untuk melanjutkan.
+            <div className="space-y-3 py-2">
+              <p className="text-center text-sm font-medium text-slate-600">
+                Konfirmasi untuk melanjutkan aksi ini.
               </p>
             </div>
           )}
 
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col-reverse gap-2.5 pt-2 sm:flex-row sm:items-center sm:justify-between">
             <button
               type="button"
               onClick={isPinStep ? handlePinBack : closeModal}
-              className="inline-flex w-full items-center justify-center rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 sm:w-auto sm:flex-1"
+              className="inline-flex w-full items-center justify-center rounded-2xl border border-slate-200 px-4 py-3 text-sm font-bold text-slate-600 transition hover:bg-slate-50 active:scale-98 sm:w-auto sm:flex-1"
             >
               {isPinStep ? "Kembali" : "Batalkan"}
             </button>
@@ -202,7 +250,7 @@ export const TransactionModal = ({
                 type="button"
                 onClick={confirmResetWithPin}
                 disabled={resetting}
-                className="inline-flex w-full items-center justify-center rounded-2xl bg-rose-600 px-4 py-3 text-sm font-semibold text-white shadow-soft transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:bg-rose-300 sm:w-auto sm:flex-1"
+                className="inline-flex w-full items-center justify-center rounded-2xl bg-rose-600 px-4 py-3.5 text-sm font-bold text-white shadow-soft transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:bg-rose-300 active:scale-98 sm:w-auto sm:flex-1"
               >
                 {resetting ? "Menghapus..." : settings.pinEnabled ? "Konfirmasi PIN" : "Konfirmasi"}
               </button>
@@ -211,7 +259,7 @@ export const TransactionModal = ({
                 type="button"
                 onClick={confirmDeleteWithPin}
                 loading={deleting}
-                className="inline-flex w-full items-center justify-center rounded-2xl bg-rose-600 px-4 py-3 text-sm font-semibold text-white shadow-soft transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:bg-rose-300 sm:w-auto sm:flex-1"
+                className="inline-flex w-full items-center justify-center rounded-2xl bg-rose-600 px-4 py-3.5 text-sm font-bold text-white shadow-soft transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:bg-rose-300 active:scale-98 sm:w-auto sm:flex-1"
               >
                 {settings.pinEnabled ? "Konfirmasi PIN" : "Konfirmasi"}
               </LoadingButton>
@@ -220,7 +268,7 @@ export const TransactionModal = ({
                 type="button"
                 onClick={confirmExportWithPin}
                 loading={exporting}
-                className="inline-flex w-full items-center justify-center rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white shadow-soft transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-emerald-300 sm:w-auto sm:flex-1"
+                className="inline-flex w-full items-center justify-center rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 px-4 py-3.5 text-sm font-bold text-white shadow-soft transition hover:from-emerald-700 hover:to-teal-700 disabled:cursor-not-allowed disabled:bg-emerald-300 active:scale-98 sm:w-auto sm:flex-1"
               >
                 {settings.pinEnabled ? "Konfirmasi PIN" : "Konfirmasi"}
               </LoadingButton>
@@ -228,7 +276,7 @@ export const TransactionModal = ({
               <LoadingButton
                 type="submit"
                 loading={submitting}
-                className="inline-flex w-full items-center justify-center rounded-2xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-soft transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-indigo-300 sm:w-auto sm:flex-1"
+                className="inline-flex w-full items-center justify-center rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 px-4 py-3.5 text-sm font-bold text-white shadow-lg shadow-emerald-600/20 transition hover:from-emerald-700 hover:to-teal-700 disabled:cursor-not-allowed disabled:opacity-60 active:scale-98 sm:w-auto sm:flex-1"
               >
                 {isPinStep
                   ? settings.pinEnabled

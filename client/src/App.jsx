@@ -57,19 +57,21 @@ export default function App() {
   return (
     <div className="min-h-screen bg-slate-50 pb-4">
       {toast && (
-        <div className={`fixed right-6 top-6 z-50 rounded-2xl px-4 py-3 text-white shadow-2xl transition-all ${toast.type === "error" ? "bg-rose-500/90" : "bg-emerald-500/90"}`}>
+        <div className={`fixed left-4 right-4 top-4 z-50 rounded-2xl px-4 py-3 text-white shadow-2xl transition-all sm:left-auto sm:right-6 sm:top-6 ${toast.type === "error" ? "bg-rose-500/90" : "bg-emerald-500/90"}`}>
           <p className="text-sm font-semibold">{toast.message}</p>
         </div>
       )}
 
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 pt-8 sm:px-6 lg:px-8">
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-5 px-3 pt-4 sm:gap-8 sm:px-6 sm:pt-8 lg:px-8">
         <Header
           user={user} currentTime={currentTime} isAdminPage={isAdminPage}
+          timezone={settings.timezone}
           setIsAdminPage={setIsAdminPage} isMenuOpen={isMenuOpen} setIsMenuOpen={setIsMenuOpen}
           setIsSettingsOpen={setIsSettingsOpen} handleLogout={handleLogout}
           setIsConfirmOpen={txHook.setIsConfirmOpen}
           handleImportExcel={() => txHook.setIsImportFileOpen(true)}
           handleDownloadExcel={() => txHook.handleDownloadExcel(runningEntries, validatePin, () => txHook.confirmExportWithPin(runningEntries, validatePin))}
+          handleDownloadPdf={() => txHook.handleDownloadPdf(runningEntries, totals, user, validatePin)}
           openModal={() => txHook.openModal(null, modalRef)}
         />
 
@@ -118,8 +120,16 @@ export default function App() {
         />
       </div>
 
-      <footer className="mx-auto mb-1 mt-8 w-full max-w-6xl px-4 text-center text-xs font-semibold text-slate-400 sm:px-6 lg:px-8">
-        © {new Date().getFullYear()} Pilar Labs
+      <footer className="mx-auto mb-1 mt-5 w-full max-w-6xl px-3 text-center text-xs font-semibold text-slate-400 sm:mt-8 sm:px-6 lg:px-8">
+        © {new Date().getFullYear()}{" "}
+        <a
+          href="https://pilarlabs.id"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-slate-400 hover:text-emerald-500 transition-colors duration-200"
+        >
+          Pilar Labs
+        </a>
       </footer>
     </div>
   );

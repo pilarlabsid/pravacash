@@ -1,6 +1,52 @@
 import React from "react";
-import { formatCurrency } from "../../lib/format";
-import { INCOME_CATEGORIES, EXPENSE_CATEGORIES } from "../../constants";
+import { DEFAULT_DATA_TIMEZONE, formatCurrency } from "../../lib/format";
+
+const toAmount = (value) => {
+  const amount = Number(value);
+  return Number.isFinite(amount) ? amount : 0;
+};
+
+const getMonthKey = (dateStr, timezone) => {
+  const tz = timezone || DEFAULT_DATA_TIMEZONE;
+  if (!dateStr) return "";
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return "";
+    const parts = new Intl.DateTimeFormat("en-CA", {
+      timeZone: tz,
+      year: "numeric",
+      month: "2-digit",
+    }).formatToParts(d);
+    const year = parts.find((p) => p.type === "year")?.value;
+    const month = parts.find((p) => p.type === "month")?.value;
+    return year && month ? `${year}-${month}` : "";
+  } catch (e) {
+    return (dateStr || "").slice(0, 7);
+  }
+};
+
+const getCurrentMonthKey = (timezone) => {
+  return getMonthKey(new Date().toISOString(), timezone || DEFAULT_DATA_TIMEZONE);
+};
+
+// Helper: get last N month keys in a given timezone
+const getLastNMonthKeys = (n, timezone) => {
+  const tz = timezone || DEFAULT_DATA_TIMEZONE;
+  const result = [];
+  const curMonthKey = getCurrentMonthKey(tz);
+  // parse curMonthKey to get year/month
+  const [curYear, curMonth] = curMonthKey.split("-").map(Number);
+  for (let i = n - 1; i >= 0; i--) {
+    let m = curMonth - i;
+    let y = curYear;
+    while (m <= 0) { m += 12; y--; }
+    const key = `${y}-${String(m).padStart(2, "0")}`;
+    const label = new Intl.DateTimeFormat("id-ID", { month: "short", timeZone: tz })
+      .format(new Date(Date.UTC(y, m - 1, 1, 12)));
+    result.push({ key, label });
+  }
+  return result;
+};
 
 const CATEGORY_COLORS = {
   Makanan: "#f43f5e",
@@ -15,15 +61,13 @@ const FALLBACK_PALETTE = ["#06b6d4", "#14b8a6", "#84cc16", "#e11d48", "#6366f1"]
 const getColor = (cat, idx) => CATEGORY_COLORS[cat] || FALLBACK_PALETTE[idx % FALLBACK_PALETTE.length];
 
 /* ── Monthly Bar Chart ──────────────────────────────── */
-const MonthlyBarChart = ({ entries }) => {
+const MonthlyBarChart = ({ entries, timezone }) => {
+  const tz = timezone || DEFAULT_DATA_TIMEZONE;
   const monthlyData = (() => {
-    const now = new Date();
-    return Array.from({ length: 6 }, (_, i) => {
-      const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
-      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-      const label = d.toLocaleDateString("id-ID", { month: "short" });
-      const inc = entries.filter((t) => t.type === "income" && (t.date || "").startsWith(key)).reduce((s, t) => s + Number(t.amount), 0);
-      const exp = entries.filter((t) => t.type === "expense" && (t.date || "").startsWith(key)).reduce((s, t) => s + Number(t.amount), 0);
+    const months = getLastNMonthKeys(6, tz);
+    return months.map(({ key, label }) => {
+      const inc = entries.filter((t) => t.type === "income" && getMonthKey(t.date, tz) === key).reduce((sum, t) => sum + toAmount(t.amount), 0);
+      const exp = entries.filter((t) => t.type === "expense" && getMonthKey(t.date, tz) === key).reduce((sum, t) => sum + toAmount(t.amount), 0);
       return { label, inc, exp };
     });
   })();
@@ -31,24 +75,24 @@ const MonthlyBarChart = ({ entries }) => {
 
   return (
     <div className="rounded-3xl bg-white p-6 shadow-soft">
-      <p className="mb-4 text-sm font-semibold uppercase tracking-wide text-slate-500">Grafik 6 Bulan Terakhir</p>
-      <div className="w-full">
-        <svg viewBox="0 70 310 110" width="100%" height="180" className="max-w-md mx-auto">
+      <p className="mb-1 text-sm font-semibold uppercase tracking-wide text-slate-500">Grafik 6 Bulan Terakhir</p>
+      <div className="w-full -mt-8">
+        <svg viewBox="0 0 720 300" width="100%" height="250" className="block w-full" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Perbandingan pemasukan dan pengeluaran enam bulan terakhir">
           {monthlyData.map((m, i) => {
-            const bW = 17, gap = 50, x0 = 18 + i * gap;
-            const incH = (m.inc / maxBar) * 72;
-            const expH = (m.exp / maxBar) * 72;
+            const bW = 42, gap = 112, x0 = 42 + i * gap;
+            const incH = (m.inc / maxBar) * 150;
+            const expH = (m.exp / maxBar) * 150;
             return (
               <g key={i}>
-                <rect x={x0} y={152 - incH} width={bW} height={incH || 2} rx="3" fill="#10b981" opacity="0.85" />
-                <rect x={x0 + bW + 2} y={152 - expH} width={bW} height={expH || 2} rx="3" fill="#f43f5e" opacity="0.75" />
-                <text x={x0 + bW} y="166" textAnchor="middle" fontSize="7.5" fill="#94a3b8">{m.label}</text>
+                <rect x={x0} y={232 - incH} width={bW} height={incH || 3} rx="6" fill="#10b981" opacity="0.85" />
+                <rect x={x0 + bW + 8} y={232 - expH} width={bW} height={expH || 3} rx="6" fill="#f43f5e" opacity="0.75" />
+                <text x={x0 + bW + 4} y="264" textAnchor="middle" fontSize="18" fill="#94a3b8">{m.label}</text>
               </g>
             );
           })}
-          <line x1="12" y1="152" x2="298" y2="152" stroke="#e2e8f0" strokeWidth="1" />
-          <rect x="12" y="74" width="7" height="6" rx="1" fill="#10b981" /><text x="22" y="80" fontSize="7" fill="#64748b">Pemasukan</text>
-          <rect x="82" y="74" width="7" height="6" rx="1" fill="#f43f5e" /><text x="92" y="80" fontSize="7" fill="#64748b">Pengeluaran</text>
+          <line x1="30" y1="232" x2="690" y2="232" stroke="#e2e8f0" strokeWidth="2" />
+          <rect x="30" y="30" width="14" height="14" rx="3" fill="#10b981" /><text x="54" y="42" fontSize="16" fill="#64748b">Pemasukan</text>
+          <rect x="190" y="30" width="14" height="14" rx="3" fill="#f43f5e" /><text x="214" y="42" fontSize="16" fill="#64748b">Pengeluaran</text>
         </svg>
       </div>
     </div>
@@ -56,10 +100,10 @@ const MonthlyBarChart = ({ entries }) => {
 };
 
 /* ── Income & Expense Trend Chart ───────────────────── */
-const TrendChart = ({ entries }) => {
-  const now = new Date();
-  const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-  const monthEntries = entries.filter((t) => (t.date || "").startsWith(currentMonthKey)).sort((a, b) => new Date(a.date) - new Date(b.date));
+const TrendChart = ({ entries, timezone }) => {
+  const tz = timezone || DEFAULT_DATA_TIMEZONE;
+  const currentMonthKey = getCurrentMonthKey(tz);
+  const monthEntries = entries.filter((t) => getMonthKey(t.date, tz) === currentMonthKey).sort((a, b) => new Date(a.date) - new Date(b.date));
 
   if (monthEntries.length === 0) {
     return (
@@ -70,15 +114,16 @@ const TrendChart = ({ entries }) => {
     );
   }
 
+
   let totalInc = 0, totalExp = 0;
   const pointsData = monthEntries.map((t) => {
-    if (t.type === "income") totalInc += t.amount;
-    if (t.type === "expense") totalExp += t.amount;
+    if (t.type === "income") totalInc += toAmount(t.amount);
+    if (t.type === "expense") totalExp += toAmount(t.amount);
     return { date: t.date, inc: totalInc, exp: totalExp };
   });
 
   const maxVal = Math.max(...pointsData.map((d) => Math.max(d.inc, d.exp)), 1);
-  const w = 310, h = 88, padX = 18, padY = 16;
+  const w = 720, h = 155, padX = 55, padY = 48;
   const getX = (i) => padX + (i * ((w - 2 * padX) / Math.max(pointsData.length - 1, 1)));
   const getY = (val) => padY + h - (val / maxVal) * h;
 
@@ -89,11 +134,11 @@ const TrendChart = ({ entries }) => {
 
   return (
     <div className="rounded-3xl bg-white p-6 shadow-soft">
-      <div className="mb-4 flex items-center justify-between">
+      <div className="mb-1 flex items-center justify-between">
         <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">Tren Pemasukan & Pengeluaran (Bulan Ini)</p>
       </div>
-      <div className="w-full">
-        <svg viewBox="0 0 310 148" width="100%" height="180" className="max-w-md mx-auto">
+      <div className="w-full -mt-8">
+        <svg viewBox="0 0 720 300" width="100%" height="250" className="block w-full" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Tren pemasukan dan pengeluaran bulan ini">
           <defs>
             <linearGradient id="incGradTrend" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#10b981" stopOpacity="0.25" /><stop offset="100%" stopColor="#10b981" stopOpacity="0.0" /></linearGradient>
             <linearGradient id="expGradTrend" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#f43f5e" stopOpacity="0.20" /><stop offset="100%" stopColor="#f43f5e" stopOpacity="0.0" /></linearGradient>
@@ -107,13 +152,13 @@ const TrendChart = ({ entries }) => {
           <polyline points={ptsExp} fill="none" stroke="#f43f5e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
           {pointsData.map((d, i) => (
             <g key={i}>
-              <circle cx={getX(i)} cy={getY(d.inc)} r="3.5" fill="#fff" stroke="#10b981" strokeWidth="2"><title>{`Pemasukan: ${formatCurrency(d.inc)}`}</title></circle>
-              <circle cx={getX(i)} cy={getY(d.exp)} r="3.5" fill="#fff" stroke="#f43f5e" strokeWidth="2"><title>{`Pengeluaran: ${formatCurrency(d.exp)}`}</title></circle>
+              <circle cx={getX(i)} cy={getY(d.inc)} r="7" fill="#fff" stroke="#10b981" strokeWidth="4"><title>{`Pemasukan: ${formatCurrency(d.inc)}`}</title></circle>
+              <circle cx={getX(i)} cy={getY(d.exp)} r="7" fill="#fff" stroke="#f43f5e" strokeWidth="4"><title>{`Pengeluaran: ${formatCurrency(d.exp)}`}</title></circle>
             </g>
           ))}
-          <g transform={`translate(${padX}, ${padY + h + 18})`}>
-            <circle cx="5" cy="4" r="3.5" fill="#10b981" /><text x="13" y="7" fontSize="8" fontWeight="600" fill="#047857">Pemasukan: {formatCurrency(totalInc)}</text>
-            <circle cx="150" cy="4" r="3.5" fill="#f43f5e" /><text x="158" y="7" fontSize="8" fontWeight="600" fill="#b91c1c">Pengeluaran: {formatCurrency(totalExp)}</text>
+          <g transform={`translate(${padX}, ${padY + h + 42})`}>
+            <circle cx="7" cy="5" r="7" fill="#10b981" /><text x="23" y="11" fontSize="16" fontWeight="600" fill="#047857">Pemasukan: {formatCurrency(totalInc)}</text>
+            <circle cx="350" cy="5" r="7" fill="#f43f5e" /><text x="366" y="11" fontSize="16" fontWeight="600" fill="#b91c1c">Pengeluaran: {formatCurrency(totalExp)}</text>
           </g>
         </svg>
       </div>
@@ -123,8 +168,8 @@ const TrendChart = ({ entries }) => {
 
 /* ── Ratio Donut Chart ──────────────────────────────── */
 const RatioChart = ({ totals }) => {
-  const totalInc = totals.income;
-  const totalExp = totals.expense;
+  const totalInc = toAmount(totals.income);
+  const totalExp = toAmount(totals.expense);
   const grandTotal = totalInc + totalExp;
 
   if (grandTotal === 0) {
@@ -188,10 +233,10 @@ const RatioChart = ({ totals }) => {
 };
 
 /* ── Category Breakdown Donut ───────────────────────── */
-const CategoryBreakdown = ({ entries }) => {
-  const now = new Date();
-  const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-  const monthExp = entries.filter((t) => t.type === "expense" && (t.date || "").startsWith(currentMonthKey));
+const CategoryBreakdown = ({ entries, timezone }) => {
+  const tz = timezone || DEFAULT_DATA_TIMEZONE;
+  const currentMonthKey = getCurrentMonthKey(tz);
+  const monthExp = entries.filter((t) => t.type === "expense" && getMonthKey(t.date, tz) === currentMonthKey);
 
   if (monthExp.length === 0) {
     return (
@@ -203,7 +248,10 @@ const CategoryBreakdown = ({ entries }) => {
   }
 
   const catTotals = {};
-  monthExp.forEach((t) => { const cat = t.category || "Lainnya"; catTotals[cat] = (catTotals[cat] || 0) + t.amount; });
+  monthExp.forEach((t) => {
+    const cat = t.category || "Lainnya";
+    catTotals[cat] = (catTotals[cat] || 0) + toAmount(t.amount);
+  });
   const sortedCats = Object.entries(catTotals).sort((a, b) => b[1] - a[1]);
   const totalMExp = sortedCats.reduce((s, [, amt]) => s + amt, 0);
 
@@ -268,15 +316,15 @@ const CategoryBreakdown = ({ entries }) => {
 };
 
 /* ── Main Export ─────────────────────────────────────── */
-export const UserFinancialCharts = ({ entries = [], totals = { income: 0, expense: 0, balance: 0 } }) => {
-  if (entries.length === 0) return null;
+export const UserFinancialCharts = ({ entries = [], totals = { income: 0, expense: 0, balance: 0 }, timezone }) => {
+  const tz = timezone || DEFAULT_DATA_TIMEZONE;
 
   return (
     <section className="mb-6 grid gap-6 md:grid-cols-2">
-      <MonthlyBarChart entries={entries} />
-      <TrendChart entries={entries} />
+      <MonthlyBarChart entries={entries} timezone={tz} />
+      <TrendChart entries={entries} timezone={tz} />
       <RatioChart totals={totals} />
-      <CategoryBreakdown entries={entries} />
+      <CategoryBreakdown entries={entries} timezone={tz} />
     </section>
   );
 };

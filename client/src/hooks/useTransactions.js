@@ -154,6 +154,9 @@ export const useTransactions = ({ token, isAuthenticated, settings, setToast, au
   // Parse Excel date helper
   const parseExcelDate = (dateStr) => {
     if (!dateStr) return null;
+    if (dateStr instanceof Date && !Number.isNaN(dateStr.getTime())) {
+      return dateStr.toISOString();
+    }
     if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
     const months = {
       'jan': '01', 'feb': '02', 'mar': '03', 'apr': '04', 'mei': '05',
@@ -171,29 +174,54 @@ export const useTransactions = ({ token, isAuthenticated, settings, setToast, au
     return null;
   };
 
+  const normalizeHeader = (value) => String(value || "").trim().toLowerCase().replace(/[^a-z0-9]/g, "");
+  const parseAmount = (value) => {
+    if (typeof value === "number") return Number.isFinite(value) ? value : 0;
+    const normalized = String(value ?? "").replace(/[^\d,-]/g, "").replace(/\./g, "").replace(",", ".");
+    return Number(normalized) || 0;
+  };
+
   const parseExcelFile = async (file) => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = (e) => {
         try {
           const data = new Uint8Array(e.target.result);
-          const workbook = readXLSX(data, { type: 'array' });
+          const workbook = readXLSX(data, { type: 'array', cellDates: true });
           const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-          const rows = XLSXUtils.sheet_to_json(worksheet, { header: 1 }).slice(1);
+          const rows = XLSXUtils.sheet_to_json(worksheet, { header: 1, raw: true, defval: "" });
+          const headerIndex = rows.findIndex((row) => row.some((cell) => ["tanggal", "tanggalwaktu", "tanggalwaktuwib", "date"].includes(normalizeHeader(cell))));
+          if (headerIndex < 0) throw new Error("Header tidak ditemukan. Gunakan kolom Tanggal, Uraian, Kategori, Tipe, dan Nominal.");
+          const headers = rows[headerIndex].map(normalizeHeader);
+          const column = (...names) => headers.findIndex((header) => names.includes(header));
+          const dateColumn = column("tanggal", "tanggalwaktu", "tanggalwaktuwib", "date");
+          const descriptionColumn = column("uraian", "deskripsi", "keterangan", "description");
+          const categoryColumn = column("kategori", "category");
+          const typeColumn = column("tipe", "jenis", "type");
+          const amountColumn = column("nominal", "jumlah", "amount");
+          const incomeColumn = column("pemasukan", "income");
+          const expenseColumn = column("pengeluaran", "expense");
+          if (dateColumn < 0 || descriptionColumn < 0 || (amountColumn < 0 && incomeColumn < 0 && expenseColumn < 0)) {
+            throw new Error("Kolom wajib tidak lengkap. Gunakan format ekspor Prava Cash atau kolom Tanggal, Uraian, dan Nominal.");
+          }
           const transactions = [];
-          for (let i = 0; i < rows.length; i++) {
+          for (let i = headerIndex + 1; i < rows.length; i++) {
             const row = rows[i];
-            if (!row || row.length < 5) continue;
-            const [tanggal, uraian, pemasukan, pengeluaran] = row;
+            if (!row) continue;
+            const tanggal = row[dateColumn];
+            const uraian = row[descriptionColumn];
             if (!uraian || !uraian.toString().trim()) continue;
             const date = parseExcelDate(tanggal);
             if (!date) continue;
-            const pNum = Number(pemasukan) || 0;
-            const eNum = Number(pengeluaran) || 0;
-            if (pNum === 0 && eNum === 0) continue;
-            const type = pNum >= eNum ? "income" : "expense";
-            const amount = type === "income" ? pNum : eNum;
-            transactions.push({ description: uraian.toString().trim(), amount, type, date });
+            const pNum = incomeColumn >= 0 ? parseAmount(row[incomeColumn]) : 0;
+            const eNum = expenseColumn >= 0 ? parseAmount(row[expenseColumn]) : 0;
+            const declaredType = String(row[typeColumn] || "").toLowerCase();
+            const declaredAmount = amountColumn >= 0 ? parseAmount(row[amountColumn]) : 0;
+            if (pNum === 0 && eNum === 0 && declaredAmount === 0) continue;
+            const type = declaredType.includes("masuk") || declaredType === "income" ? "income" : declaredType.includes("keluar") || declaredType === "expense" ? "expense" : pNum >= eNum ? "income" : "expense";
+            const amount = declaredAmount || (type === "income" ? pNum : eNum);
+            if (amount <= 0) continue;
+            transactions.push({ description: uraian.toString().trim(), category: row[categoryColumn] ? String(row[categoryColumn]).trim() : undefined, amount, type, date });
           }
           resolve(transactions);
         } catch (err) { reject(new Error(`Gagal membaca file Excel: ${err.message}`)); }
@@ -228,6 +256,27 @@ export const useTransactions = ({ token, isAuthenticated, settings, setToast, au
     } finally {
       setImporting(false);
     }
+  };
+
+  const downloadImportTemplate = () => {
+    const rows = [
+      ["PRAVA CASH - TEMPLATE IMPORT TRANSAKSI"],
+      ["Isi transaksi mulai dari baris 5. Waktu transaksi menggunakan WIB dan nominal ditulis sebagai angka tanpa Rp."],
+      [],
+      ["Tanggal & Waktu (WIB)", "Uraian", "Kategori", "Tipe", "Nominal"],
+      [new Date("2026-10-03T08:30:00+07:00"), "Penjualan harian", "Penjualan", "Pemasukan", 1500000],
+      [new Date("2026-10-03T12:00:00+07:00"), "Belanja bahan", "Makanan", "Pengeluaran", 250000],
+    ];
+    const worksheet = XLSXUtils.aoa_to_sheet(rows, { cellDates: true });
+    worksheet["!cols"] = [{ wch: 24 }, { wch: 34 }, { wch: 20 }, { wch: 18 }, { wch: 18 }];
+    worksheet["!autofilter"] = { ref: "A4:E6" };
+    if (worksheet.A5) worksheet.A5.z = "dd mmm yyyy hh:mm";
+    if (worksheet.A6) worksheet.A6.z = "dd mmm yyyy hh:mm";
+    if (worksheet.E5) worksheet.E5.z = '[$Rp-421] #,##0';
+    if (worksheet.E6) worksheet.E6.z = '[$Rp-421] #,##0';
+    const workbook = XLSXUtils.book_new();
+    XLSXUtils.book_append_sheet(workbook, worksheet, "Template Import");
+    writeXLSXFile(workbook, "template-import-transaksi-prava-cash.xlsx");
   };
 
   const importTransactions = async (transactions) => {
@@ -295,15 +344,27 @@ export const useTransactions = ({ token, isAuthenticated, settings, setToast, au
     }
     setExporting(true);
     try {
-      const rows = runningEntries.map(e => ({
-        Tanggal: formatDate(e.date, settings.timezone || "Asia/Jakarta"),
-        Uraian: e.description,
-        Kategori: e.category || (e.type === "income" ? "Gaji" : "Lainnya"),
-        Pemasukan: e.type === "income" ? e.amount : 0,
-        Pengeluaran: e.type === "expense" ? e.amount : 0,
-        Saldo: e.runningBalance,
-      }));
-      const ws = XLSXUtils.json_to_sheet(rows, { header: ["Tanggal", "Uraian", "Kategori", "Pemasukan", "Pengeluaran", "Saldo"] });
+      const timezone = settings.timezone || "Asia/Jakarta";
+      const income = runningEntries.filter((entry) => entry.type === "income").reduce((sum, entry) => sum + Number(entry.amount || 0), 0);
+      const expense = runningEntries.filter((entry) => entry.type === "expense").reduce((sum, entry) => sum + Number(entry.amount || 0), 0);
+      const rows = [
+        ["PRAVA CASH - LAPORAN TRANSAKSI"],
+        [`Diekspor ${formatDate(new Date().toISOString(), timezone)}`],
+        ["Ringkasan", "Pemasukan", "Pengeluaran", "Saldo Akhir"],
+        ["", income, expense, income - expense],
+        [],
+        ["Tanggal & Waktu (WIB)", "Uraian", "Kategori", "Tipe", "Nominal", "Saldo"],
+        ...runningEntries.map((entry) => [new Date(entry.date), entry.description, entry.category || (entry.type === "income" ? "Gaji" : "Lainnya"), entry.type === "income" ? "Pemasukan" : "Pengeluaran", Number(entry.amount), Number(entry.runningBalance)]),
+      ];
+      const ws = XLSXUtils.aoa_to_sheet(rows, { cellDates: true });
+      ws["!cols"] = [{ wch: 22 }, { wch: 34 }, { wch: 18 }, { wch: 16 }, { wch: 18 }, { wch: 18 }];
+      ws["!autofilter"] = { ref: `A6:F${Math.max(6, runningEntries.length + 6)}` };
+      ws["!freeze"] = { xSplit: 0, ySplit: 6 };
+      ["B4", "C4", "D4"].forEach((cell) => { if (ws[cell]) ws[cell].z = '[$Rp-421] #,##0'; });
+      for (let row = 7; row <= runningEntries.length + 6; row++) {
+        if (ws[`A${row}`]) ws[`A${row}`].z = "dd mmm yyyy hh:mm";
+        ["E", "F"].forEach((columnName) => { if (ws[`${columnName}${row}`]) ws[`${columnName}${row}`].z = '[$Rp-421] #,##0'; });
+      }
       const wb = XLSXUtils.book_new();
       XLSXUtils.book_append_sheet(wb, ws, "Transaksi");
       writeXLSXFile(wb, `prava-cash-transactions-${new Date().toISOString().slice(0,10)}.xlsx`);
@@ -313,6 +374,18 @@ export const useTransactions = ({ token, isAuthenticated, settings, setToast, au
       setToast({ type: "error", message: "Gagal membuat file Excel." });
     } finally {
       setExporting(false);
+    }
+  };
+
+  const handleDownloadPdf = async (runningEntries, totals, user, validatePin) => {
+    if (!runningEntries.length) { setToast({ type: "error", message: "Belum ada transaksi untuk diunduh." }); return; }
+    if (settings.pinEnabled && !(await validatePin())) return;
+    try {
+      const { generateTransactionPDF } = await import("../utils/pdfExport");
+      generateTransactionPDF({ transactions: runningEntries, summary: totals, user, timezone: settings.timezone || "Asia/Jakarta" });
+      setToast({ type: "success", message: "Laporan PDF siap diunduh." });
+    } catch (error) {
+      setToast({ type: "error", message: "Gagal membuat laporan PDF." });
     }
   };
 
@@ -331,8 +404,8 @@ export const useTransactions = ({ token, isAuthenticated, settings, setToast, au
     importPreview, setImportPreview,
     fetchEntries, handleChange, openModal,
     requestDelete, handleReset,
-    handleFileUpload, confirmImportWithPin,
-    handleDownloadExcel, confirmExportWithPin,
+    handleFileUpload, downloadImportTemplate, confirmImportWithPin,
+    handleDownloadExcel, confirmExportWithPin, handleDownloadPdf,
     createInitialForm,
   };
 };

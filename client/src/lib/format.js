@@ -5,27 +5,77 @@ export const formatCurrency = (value = 0) =>
     maximumFractionDigits: 0,
   }).format(value);
 
-export const formatDate = (dateString, timezone = 'Asia/Jakarta') => {
+/**
+ * Detect the browser's timezone using Intl API.
+ * Falls back to "Asia/Jakarta" if detection fails.
+ */
+export const getBrowserTimezone = () => {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || "Asia/Jakarta";
+  } catch (e) {
+    return "Asia/Jakarta";
+  }
+};
+
+// Zona waktu baku untuk data, transaksi, dan seluruh dokumen ekspor.
+export const DEFAULT_DATA_TIMEZONE = "Asia/Jakarta";
+
+/**
+ * Map timezone identifier to Indonesian timezone label (WIB/WITA/WIT).
+ * For non-Indonesian timezones, returns the UTC offset (e.g. "UTC+8").
+ */
+export const getTimezoneLabel = (timezone) => {
+  const tz = timezone || DEFAULT_DATA_TIMEZONE;
+
+  // Indonesian timezone mapping
+  const WIB_ZONES = ["Asia/Jakarta", "Asia/Pontianak"];
+  const WITA_ZONES = ["Asia/Makassar", "Asia/Ujung_Pandang"];
+  const WIT_ZONES = ["Asia/Jayapura"];
+
+  if (WIB_ZONES.includes(tz)) return "WIB";
+  if (WITA_ZONES.includes(tz)) return "WITA";
+  if (WIT_ZONES.includes(tz)) return "WIT";
+
+  // For other timezones, calculate UTC offset
+  try {
+    const now = new Date();
+    const formatter = new Intl.DateTimeFormat("en-US", {
+      timeZone: tz,
+      timeZoneName: "shortOffset",
+    });
+    const parts = formatter.formatToParts(now);
+    const tzPart = parts.find((p) => p.type === "timeZoneName");
+    if (tzPart) return tzPart.value; // e.g. "GMT+8"
+  } catch (e) {
+    // fallback
+  }
+  return "WIB";
+};
+
+export const formatDate = (dateString, timezone) => {
+  const tz = timezone || DEFAULT_DATA_TIMEZONE;
   if (!dateString) return "-";
   const date = new Date(dateString);
   if (Number.isNaN(date.getTime())) return "-";
 
-  return date.toLocaleDateString("id-ID", {
+  const formatted = date.toLocaleDateString("id-ID", {
     day: "2-digit",
     month: "short",
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
-    timeZone: timezone,
+    timeZone: tz,
   });
+  return `${formatted} ${getTimezoneLabel(tz)}`;
 };
 
-export const getNow = (timezone = 'Asia/Jakarta') => {
+export const getNow = (timezone) => {
+  const tz = timezone || DEFAULT_DATA_TIMEZONE;
   const now = new Date();
   
   // Format to YYYY-MM-DDTHH:mm for datetime-local input
   const formatter = new Intl.DateTimeFormat("en-CA", {
-    timeZone: timezone,
+    timeZone: tz,
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
@@ -48,4 +98,3 @@ export const getNow = (timezone = 'Asia/Jakarta') => {
 
   return `${year}-${month}-${day}T${formattedHour}:${minute}`;
 };
-

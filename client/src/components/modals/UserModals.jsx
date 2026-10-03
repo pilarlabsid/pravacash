@@ -10,12 +10,15 @@ export const EditUserModal = ({
   if (!isOpen || !selectedUser) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 px-4">
-      <div className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl sm:p-8">
-        <div className="mb-6 flex items-start justify-between">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-slate-900/60 p-0 sm:p-4 backdrop-blur-sm transition-opacity">
+      <div className="w-full max-w-lg max-h-[92vh] sm:max-h-[88vh] overflow-y-auto rounded-t-[2rem] sm:rounded-3xl bg-white p-5 sm:p-8 shadow-2xl">
+        {/* Mobile handle indicator */}
+        <div className="w-10 h-1 bg-slate-200 rounded-full mx-auto mb-3 sm:hidden" />
+
+        <div className="mb-5 flex items-start justify-between">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-wide text-indigo-500">Admin</p>
-            <h2 className="mt-2 text-2xl font-semibold text-slate-900">Edit User</h2>
+            <p className="text-xs font-bold uppercase tracking-wider text-emerald-600">Admin</p>
+            <h2 className="text-xl sm:text-2xl font-bold text-slate-900">Edit User</h2>
           </div>
           <button
             type="button"
@@ -23,7 +26,7 @@ export const EditUserModal = ({
               setIsEditUserModalOpen(false);
               setSelectedUser(null);
             }}
-            className="rounded-full bg-slate-100 p-2 text-slate-500 transition hover:bg-slate-200"
+            className="rounded-full bg-slate-100 p-2 text-slate-500 transition hover:bg-slate-200 active:scale-95"
             aria-label="Tutup"
           >
             ✕
@@ -32,7 +35,7 @@ export const EditUserModal = ({
 
         <form onSubmit={handleUpdateUser} className="space-y-4">
           <div>
-            <label className="mb-2 block text-sm font-semibold text-slate-700">Nama</label>
+            <label className="mb-1.5 block text-xs sm:text-sm font-semibold text-slate-700">Nama Lengkap</label>
             <input
               type="text"
               value={editUserForm.name}
@@ -43,7 +46,7 @@ export const EditUserModal = ({
             />
           </div>
           <div>
-            <label className="mb-2 block text-sm font-semibold text-slate-700">Email</label>
+            <label className="mb-1.5 block text-xs sm:text-sm font-semibold text-slate-700">Email</label>
             <input
               type="email"
               value={editUserForm.email}
@@ -54,7 +57,7 @@ export const EditUserModal = ({
             />
           </div>
           <div>
-            <label className="mb-2 block text-sm font-semibold text-slate-700">Role</label>
+            <label className="mb-1.5 block text-xs sm:text-sm font-semibold text-slate-700">Role Pengguna</label>
             <select
               value={editUserForm.role}
               onChange={(e) => setEditUserForm({ ...editUserForm, role: e.target.value })}
@@ -64,23 +67,23 @@ export const EditUserModal = ({
               <option value="admin">Admin</option>
             </select>
           </div>
-          <div className="flex gap-3">
+          <div className="flex flex-col-reverse sm:flex-row gap-2.5 pt-2">
             <button
               type="button"
               onClick={() => {
                 setIsEditUserModalOpen(false);
                 setSelectedUser(null);
               }}
-              className="flex-1 rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
+              className="w-full sm:flex-1 rounded-2xl border border-slate-200 px-4 py-3 text-sm font-bold text-slate-600 transition hover:bg-slate-50 active:scale-98"
             >
               Batal
             </button>
             <LoadingButton
               type="submit"
               loading={adminLoading}
-              className="flex-1 rounded-2xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-soft transition hover:bg-indigo-700"
+              className="w-full sm:flex-1 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 px-4 py-3.5 text-sm font-bold text-white shadow-lg shadow-emerald-600/20 transition hover:from-emerald-700 hover:to-teal-700 active:scale-98"
             >
-              Simpan
+              Simpan Perubahan
             </LoadingButton>
           </div>
         </form>
@@ -98,17 +101,20 @@ export const AddUserModal = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 px-4">
-      <div className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl sm:p-8">
-        <div className="mb-6 flex items-start justify-between">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-slate-900/60 p-0 sm:p-4 backdrop-blur-sm transition-opacity">
+      <div className="w-full max-w-lg max-h-[92vh] sm:max-h-[88vh] overflow-y-auto rounded-t-[2rem] sm:rounded-3xl bg-white p-5 sm:p-8 shadow-2xl">
+        {/* Mobile handle indicator */}
+        <div className="w-10 h-1 bg-slate-200 rounded-full mx-auto mb-3 sm:hidden" />
+
+        <div className="mb-5 flex items-start justify-between">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-wide text-indigo-500">Admin</p>
-            <h2 className="mt-2 text-2xl font-semibold text-slate-900">Tambah User Baru</h2>
+            <p className="text-xs font-bold uppercase tracking-wider text-emerald-600">Admin</p>
+            <h2 className="text-xl sm:text-2xl font-bold text-slate-900">Tambah User Baru</h2>
           </div>
           <button
             type="button"
             onClick={() => { setIsAddUserModalOpen(false); setAddUserError(""); }}
-            className="rounded-full bg-slate-100 p-2 text-slate-500 transition hover:bg-slate-200"
+            className="rounded-full bg-slate-100 p-2 text-slate-500 transition hover:bg-slate-200 active:scale-95"
             aria-label="Tutup"
           >
             ✕
@@ -117,7 +123,7 @@ export const AddUserModal = ({
 
         <form onSubmit={handleAddUser} className="space-y-4">
           <div>
-            <label className="mb-2 block text-sm font-semibold text-slate-700">Nama Lengkap</label>
+            <label className="mb-1.5 block text-xs sm:text-sm font-semibold text-slate-700">Nama Lengkap</label>
             <input
               type="text"
               value={addUserForm.name}
@@ -128,7 +134,7 @@ export const AddUserModal = ({
             />
           </div>
           <div>
-            <label className="mb-2 block text-sm font-semibold text-slate-700">Email</label>
+            <label className="mb-1.5 block text-xs sm:text-sm font-semibold text-slate-700">Email</label>
             <input
               type="email"
               value={addUserForm.email}
@@ -139,7 +145,7 @@ export const AddUserModal = ({
             />
           </div>
           <div>
-            <label className="mb-2 block text-sm font-semibold text-slate-700">Password</label>
+            <label className="mb-1.5 block text-xs sm:text-sm font-semibold text-slate-700">Password</label>
             <input
               type="password"
               value={addUserForm.password}
@@ -151,7 +157,7 @@ export const AddUserModal = ({
             />
           </div>
           <div>
-            <label className="mb-2 block text-sm font-semibold text-slate-700">Role</label>
+            <label className="mb-1.5 block text-xs sm:text-sm font-semibold text-slate-700">Role Pengguna</label>
             <select
               value={addUserForm.role}
               onChange={(e) => setAddUserForm({ ...addUserForm, role: e.target.value })}
@@ -164,18 +170,18 @@ export const AddUserModal = ({
           {addUserError && (
             <p className="text-sm font-semibold text-rose-500">{addUserError}</p>
           )}
-          <div className="flex gap-3 pt-2">
+          <div className="flex flex-col-reverse sm:flex-row gap-2.5 pt-2">
             <button
               type="button"
               onClick={() => { setIsAddUserModalOpen(false); setAddUserError(""); }}
-              className="flex-1 rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
+              className="w-full sm:flex-1 rounded-2xl border border-slate-200 px-4 py-3 text-sm font-bold text-slate-600 transition hover:bg-slate-50 active:scale-98"
             >
               Batal
             </button>
             <LoadingButton
               type="submit"
               loading={addUserLoading}
-              className="flex-1 rounded-2xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-soft transition hover:bg-indigo-700"
+              className="w-full sm:flex-1 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 px-4 py-3.5 text-sm font-bold text-white shadow-lg shadow-emerald-600/20 transition hover:from-emerald-700 hover:to-teal-700 active:scale-98"
             >
               Buat User
             </LoadingButton>

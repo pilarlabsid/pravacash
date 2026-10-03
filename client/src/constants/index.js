@@ -22,8 +22,8 @@ export const createInitialForm = (overrides = {}, timezone = "Asia/Jakarta") => 
 export const STAT_STYLES = {
   income: "from-emerald-500 via-emerald-400 to-emerald-500 text-white",
   expense: "from-rose-500 via-rose-400 to-rose-500 text-white",
-  balance: "from-indigo-500 via-blue-500 to-sky-500 text-white",
+  balance: "from-emerald-600 via-teal-600 to-cyan-700 text-white",
 };
 
 export const inputClasses =
-  "w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-900 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-100";
+  "w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-base sm:text-sm font-medium text-slate-900 outline-none transition focus:border-emerald-500 focus:bg-white focus:ring-2 focus:ring-emerald-100 placeholder:text-slate-400";

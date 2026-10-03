@@ -5,61 +5,76 @@ import { UserFinancialCharts } from './UserFinancialCharts';
 import { TransactionTable } from './TransactionTable';
 
 export const UserDashboard = ({ totals, sortedEntries, runningEntries, txHook, settings, validatePin, modalRef }) => {
-  const [currentCardIndex, setCurrentCardIndex] = useState(0);
-
   return (
     <>
-      <section className="relative pb-2 sm:grid sm:grid-cols-3 sm:gap-6">
-        <div className="relative overflow-hidden sm:col-span-3 sm:grid sm:grid-cols-3 sm:gap-6 sm:overflow-visible">
-          <div
-            className="flex transition-transform duration-300 ease-in-out sm:contents"
-            style={{
-              transform: `translateX(-${currentCardIndex * 100}%)`,
-            }}
-          >
-            <div className="min-w-full flex-shrink-0 sm:min-w-0">
-              <StatCard
-                label="Saldo"
-                value={formatCurrency(totals.balance)}
-                className="bg-indigo-600 text-white"
-              />
+      <section className="space-y-3 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-6">
+        {/* Mobile View: Hero Saldo + 2 side-by-side cards */}
+        <div className="block sm:hidden space-y-3">
+          {/* Main Balance Hero Card */}
+          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-emerald-950 to-slate-900 p-5 text-white shadow-lg border border-emerald-900/40">
+            <div className="relative z-10 flex items-center justify-between">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wider text-emerald-400">
+                  Total Saldo Kas
+                </p>
+                <p className="mt-1 text-2xl font-extrabold tracking-tight text-white">
+                  {formatCurrency(totals.balance)}
+                </p>
+              </div>
+              <div className="h-10 w-10 rounded-2xl bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center text-emerald-300">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                </svg>
+              </div>
             </div>
-            <div className="min-w-full flex-shrink-0 sm:min-w-0">
-              <StatCard
-                label="Pemasukan"
-                value={formatCurrency(totals.income)}
-                className="bg-emerald-500 text-white"
-              />
+          </div>
+
+          {/* Income & Expense Side by Side */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="rounded-2xl border border-emerald-100 bg-white p-3.5 shadow-sm">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-600">
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-50 text-[10px]">↓</span>
+                Pemasukan
+              </div>
+              <p className="mt-1.5 text-base font-extrabold text-emerald-600 truncate">
+                {formatCurrency(totals.income)}
+              </p>
             </div>
-            <div className="min-w-full flex-shrink-0 sm:min-w-0">
-              <StatCard
-                label="Pengeluaran"
-                value={formatCurrency(totals.expense)}
-                className="bg-rose-500 text-white"
-              />
+
+            <div className="rounded-2xl border border-rose-100 bg-white p-3.5 shadow-sm">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-rose-600">
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-rose-50 text-[10px]">↑</span>
+                Pengeluaran
+              </div>
+              <p className="mt-1.5 text-base font-extrabold text-rose-600 truncate">
+                {formatCurrency(totals.expense)}
+              </p>
             </div>
           </div>
         </div>
 
-        {/* Carousel Dots Indicator - hanya tampil di mobile */}
-        <div className="mt-4 flex justify-center gap-2 sm:hidden">
-          {[0, 1, 2].map((index) => (
-            <button
-              key={index}
-              type="button"
-              onClick={() => setCurrentCardIndex(index)}
-              className={`h-2 rounded-full transition-all ${currentCardIndex === index
-                ? "w-8 bg-indigo-500"
-                : "w-2 bg-slate-300"
-                }`}
-              aria-label={`Go to slide ${index + 1}`}
-            />
-          ))}
+        {/* Desktop View: 3 StatCards */}
+        <div className="hidden sm:contents">
+          <StatCard
+            label="Saldo"
+            value={formatCurrency(totals.balance)}
+            className="from-slate-900 via-emerald-950 to-slate-900 text-white border border-emerald-900/40"
+          />
+          <StatCard
+            label="Pemasukan"
+            value={formatCurrency(totals.income)}
+            className="from-emerald-600 to-teal-600 text-white"
+          />
+          <StatCard
+            label="Pengeluaran"
+            value={formatCurrency(totals.expense)}
+            className="from-rose-500 to-red-600 text-white"
+          />
         </div>
       </section>
 
       <section className="grid gap-6">
-        <UserFinancialCharts entries={sortedEntries} totals={totals} />
+        <UserFinancialCharts entries={sortedEntries} totals={totals} timezone={settings?.timezone} />
 
         <TransactionTable
           loading={txHook.loading} runningEntries={runningEntries}

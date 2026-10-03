@@ -1,10 +1,11 @@
 import { useState, useCallback } from "react";
 import { getApiUrl } from "./useApi";
+import { DEFAULT_DATA_TIMEZONE } from "../lib/format";
 
 export const useSettings = ({ token, isAuthenticated, user, setUser, setToast, authenticatedFetch }) => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [settings, setSettings] = useState({ name: "", email: "", pinEnabled: false, timezone: "Asia/Jakarta" });
-  const [settingsForm, setSettingsForm] = useState({ name: "", email: "", pin: "", pinEnabled: false, timezone: "Asia/Jakarta" });
+  const [settings, setSettings] = useState({ name: "", email: "", pinEnabled: false, timezone: DEFAULT_DATA_TIMEZONE });
+  const [settingsForm, setSettingsForm] = useState({ name: "", email: "", pin: "", pinEnabled: false, timezone: DEFAULT_DATA_TIMEZONE });
   const [settingsLoading, setSettingsLoading] = useState(false);
   const [settingsError, setSettingsError] = useState("");
 
@@ -17,8 +18,8 @@ export const useSettings = ({ token, isAuthenticated, user, setUser, setToast, a
       if (response.status === 401) return; // let useAuth handle this
       if (response.ok) {
         const data = await response.json();
-        setSettings({ name: data.name, email: data.email, pinEnabled: data.pinEnabled || false, timezone: data.timezone || "Asia/Jakarta" });
-        setSettingsForm(prev => ({ ...prev, name: data.name, email: data.email, pinEnabled: data.pinEnabled || false, timezone: data.timezone || "Asia/Jakarta" }));
+        setSettings({ name: data.name, email: data.email, pinEnabled: data.pinEnabled || false, timezone: data.timezone || DEFAULT_DATA_TIMEZONE });
+        setSettingsForm(prev => ({ ...prev, name: data.name, email: data.email, pinEnabled: data.pinEnabled || false, timezone: data.timezone || DEFAULT_DATA_TIMEZONE }));
       }
     } catch (error) {
       console.error("Failed to fetch settings:", error);
@@ -36,7 +37,7 @@ export const useSettings = ({ token, isAuthenticated, user, setUser, setToast, a
       const data = await response.json();
       if (!response.ok) throw new Error(data.message || "Gagal memperbarui profile.");
       setUser({ ...user, name: data.name, email: data.email });
-      setSettings({ ...settings, name: data.name, email: data.email, timezone: data.timezone || "Asia/Jakarta" });
+      setSettings({ ...settings, name: data.name, email: data.email, timezone: data.timezone || DEFAULT_DATA_TIMEZONE });
       setToast({ type: "success", message: "Profile berhasil diperbarui." });
     } catch (error) {
       setSettingsError(error.message);

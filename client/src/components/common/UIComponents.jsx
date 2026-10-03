@@ -46,9 +46,9 @@ export const LoadingOverlay = ({ message = "Memuat..." }) => {
 };
 
 export const Field = ({ label, children }) => (
-  <label className="text-sm font-medium text-slate-600">
+  <label className="text-sm font-medium leading-tight text-slate-600">
     {label}
-    <div className="mt-2">{children}</div>
+    <div className="mt-1.5 sm:mt-2">{children}</div>
   </label>
 );
 

@@ -10,14 +10,17 @@ export const SettingsModal = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 px-4">
-      <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl sm:p-8">
-        <div className="mb-6 flex items-start justify-between">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-slate-900/60 p-0 sm:p-4 backdrop-blur-sm transition-opacity">
+      <div className="w-full max-w-2xl max-h-[92vh] sm:max-h-[88vh] overflow-y-auto rounded-t-[2rem] sm:rounded-3xl bg-white p-5 sm:p-8 shadow-2xl">
+        {/* Mobile handle indicator */}
+        <div className="w-10 h-1 bg-slate-200 rounded-full mx-auto mb-3 sm:hidden" />
+
+        <div className="mb-5 flex items-start justify-between">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-wide text-indigo-500">
+            <p className="text-xs font-bold uppercase tracking-wider text-emerald-600">
               Pengaturan
             </p>
-            <h2 className="mt-2 text-2xl font-semibold text-slate-900">
+            <h2 className="text-xl sm:text-2xl font-bold text-slate-900">
               Profile & Keamanan
             </h2>
           </div>
@@ -27,20 +30,20 @@ export const SettingsModal = ({
               setIsSettingsOpen(false);
               setSettingsError("");
             }}
-            className="rounded-full bg-slate-100 p-2 text-slate-500 transition hover:bg-slate-200"
+            className="rounded-full bg-slate-100 p-2 text-slate-500 transition hover:bg-slate-200 active:scale-95"
             aria-label="Tutup settings"
           >
             ✕
           </button>
         </div>
 
-        <div className="space-y-6">
+        <div className="space-y-5">
           {/* Profile Section */}
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6">
-            <h3 className="mb-4 text-lg font-semibold text-slate-900">Profile</h3>
-            <form onSubmit={handleUpdateProfile} className="space-y-4">
+          <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4 sm:p-6">
+            <h3 className="mb-3 text-base font-bold text-slate-900">Profile Pengguna</h3>
+            <form onSubmit={handleUpdateProfile} className="space-y-3.5">
               <div>
-                <label className="mb-2 block text-sm font-semibold text-slate-700">Nama</label>
+                <label className="mb-1.5 block text-xs sm:text-sm font-semibold text-slate-700">Nama</label>
                 <input
                   type="text"
                   value={settingsForm.name}
@@ -51,7 +54,7 @@ export const SettingsModal = ({
                 />
               </div>
               <div>
-                <label className="mb-2 block text-sm font-semibold text-slate-700">Email</label>
+                <label className="mb-1.5 block text-xs sm:text-sm font-semibold text-slate-700">Email</label>
                 <input
                   type="email"
                   value={settingsForm.email}
@@ -62,7 +65,7 @@ export const SettingsModal = ({
                 />
               </div>
               <div>
-                <label className="mb-2 block text-sm font-semibold text-slate-700">Timezone</label>
+                <label className="mb-1.5 block text-xs sm:text-sm font-semibold text-slate-700">Zona Waktu (Timezone)</label>
                 <select
                   value={settingsForm.timezone || "Asia/Jakarta"}
                   onChange={(e) => setSettingsForm({ ...settingsForm, timezone: e.target.value })}
@@ -101,17 +104,17 @@ export const SettingsModal = ({
                     <option value="Pacific/Auckland">Auckland - GMT+12</option>
                   </optgroup>
                 </select>
-                <p className="mt-2 text-xs text-slate-500">
-                  Pilih timezone untuk menampilkan waktu dan tanggal sesuai lokasi Anda.
+                <p className="mt-1.5 text-xs text-slate-500">
+                  Waktu dan tanggal transaksi akan disesuaikan dengan zona waktu ini.
                 </p>
               </div>
               {settingsError && (
-                <p className="text-sm font-semibold text-rose-500">{settingsError}</p>
+                <p className="text-xs sm:text-sm font-semibold text-rose-500">{settingsError}</p>
               )}
               <LoadingButton
                 type="submit"
                 loading={settingsLoading}
-                className="w-full rounded-2xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-soft transition hover:bg-indigo-700"
+                className="w-full rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 px-4 py-3.5 text-sm font-bold text-white shadow-lg shadow-emerald-600/20 transition hover:from-emerald-700 hover:to-teal-700 active:scale-98"
               >
                 Simpan Profile
               </LoadingButton>
@@ -119,57 +122,57 @@ export const SettingsModal = ({
           </div>
 
           {/* PIN Settings Section */}
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6">
-            <h3 className="mb-4 text-lg font-semibold text-slate-900">Pengaturan PIN</h3>
-            <form onSubmit={handleUpdatePin} className="space-y-4">
-              <div className="flex items-center justify-between rounded-xl bg-white p-4">
-                <div>
-                  <p className="text-sm font-semibold text-slate-900">Aktifkan PIN</p>
-                  <p className="mt-1 text-xs text-slate-500">
-                    PIN diperlukan untuk operasi penting (tambah, edit, hapus, export, import)
+          <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4 sm:p-6">
+            <h3 className="mb-3 text-base font-bold text-slate-900">Keamanan PIN</h3>
+            <form onSubmit={handleUpdatePin} className="space-y-3.5">
+              <div className="flex items-center justify-between rounded-xl bg-white p-3.5 border border-slate-200">
+                <div className="pr-2">
+                  <p className="text-xs sm:text-sm font-bold text-slate-900">Proteksi PIN</p>
+                  <p className="mt-0.5 text-xs text-slate-500">
+                    PIN 4 digit saat menghapus, mengedit, atau ekspor data
                   </p>
                 </div>
-                <label className="relative inline-flex cursor-pointer items-center">
+                <label className="relative inline-flex cursor-pointer items-center shrink-0">
                   <input
                     type="checkbox"
                     checked={settingsForm.pinEnabled}
                     onChange={(e) => setSettingsForm({ ...settingsForm, pinEnabled: e.target.checked, pin: "" })}
                     className="peer sr-only"
                   />
-                  <div className="peer h-6 w-11 rounded-full bg-slate-200 after:absolute after:top-[2px] after:left-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-slate-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-indigo-600 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-300"></div>
+                  <div className="peer h-6 w-11 rounded-full bg-slate-200 after:absolute after:top-[2px] after:left-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-slate-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-emerald-600 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-emerald-300"></div>
                 </label>
               </div>
 
               {settingsForm.pinEnabled && (
                 <div>
-                  <label className="mb-2 block text-sm font-semibold text-slate-700">PIN 4 Digit</label>
+                  <label className="mb-1.5 block text-xs sm:text-sm font-semibold text-slate-700">PIN 4 Digit</label>
                   <input
                     type="password"
                     value={settingsForm.pin}
                     onChange={(e) => setSettingsForm({ ...settingsForm, pin: e.target.value.slice(0, 4) })}
-                    className={`${inputClasses} text-center tracking-[0.5em]`}
+                    className={`${inputClasses} text-center text-xl font-bold tracking-[0.6em] py-3.5`}
                     placeholder="••••"
                     inputMode="numeric"
                     pattern="\d{4}"
                     maxLength={4}
                     required={settingsForm.pinEnabled}
                   />
-                  <p className="mt-2 text-xs text-slate-500">
+                  <p className="mt-1.5 text-xs text-slate-500">
                     {settings?.pinEnabled
                       ? "Masukkan PIN baru untuk mengubah, atau kosongkan untuk menghapus PIN."
-                      : "Masukkan PIN 4 digit untuk mengaktifkan proteksi PIN."}
+                      : "Masukkan 4 angka untuk mengaktifkan proteksi PIN."}
                   </p>
                 </div>
               )}
 
               {settingsError && (
-                <p className="text-sm font-semibold text-rose-500">{settingsError}</p>
+                <p className="text-xs sm:text-sm font-semibold text-rose-500">{settingsError}</p>
               )}
               <LoadingButton
                 type="submit"
                 loading={settingsLoading}
                 disabled={settingsForm.pinEnabled && !settingsForm.pin}
-                className="w-full rounded-2xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-soft transition hover:bg-indigo-700 disabled:opacity-50"
+                className="w-full rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 px-4 py-3.5 text-sm font-bold text-white shadow-lg shadow-emerald-600/20 transition hover:from-emerald-700 hover:to-teal-700 disabled:opacity-50 active:scale-98"
               >
                 Simpan Pengaturan PIN
               </LoadingButton>
