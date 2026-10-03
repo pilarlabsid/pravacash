@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { useAppLogic } from "./hooks/useAppLogic";
 
 // Components
@@ -10,6 +10,7 @@ import { UserDashboard } from "./components/dashboard/UserDashboard";
 import { AppModals } from "./components/modals/AppModals";
 
 export default function App() {
+  const [chartGranularity, setChartGranularity] = useState("week");
   const {
     toast, currentTime, isMenuOpen, setIsMenuOpen, isAdminPage, setIsAdminPage, modalRef,
     user, isAuthenticated, authLoading, isLoginModalOpen, setIsLoginModalOpen,
@@ -71,7 +72,7 @@ export default function App() {
           setIsConfirmOpen={txHook.setIsConfirmOpen}
           handleImportExcel={() => txHook.setIsImportFileOpen(true)}
           handleDownloadExcel={() => txHook.handleDownloadExcel(runningEntries, validatePin, () => txHook.confirmExportWithPin(runningEntries, validatePin))}
-          handleDownloadPdf={() => txHook.handleDownloadPdf(runningEntries, totals, user, validatePin)}
+          handleDownloadPdf={() => txHook.handleDownloadPdf(runningEntries, totals, user, validatePin, chartGranularity)}
           openModal={() => txHook.openModal(null, modalRef)}
         />
 
@@ -95,6 +96,8 @@ export default function App() {
             settings={settings}
             validatePin={validatePin}
             modalRef={modalRef}
+            chartGranularity={chartGranularity}
+            setChartGranularity={setChartGranularity}
           />
         )}
 

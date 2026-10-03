@@ -2,19 +2,34 @@ require("dotenv").config();
 const { PrismaClient } = require("@prisma/client");
 
 const prisma = new PrismaClient();
+const MAX_DB_CONNECT_ATTEMPTS = 5;
+
+const isTransientConnectionError = (error) => {
+  return error.errorCode === "P1001" || error.errorCode === "P1002" ||
+    /Can't reach database server|Timed out fetching a new connection|ECONNRESET|ECONNREFUSED|ETIMEDOUT|EHOSTUNREACH|ENETUNREACH|EAI_AGAIN/i.test(error.message);
+};
 
 async function initDb() {
-  try {
-    console.log(`🌍 NODE_ENV: ${process.env.NODE_ENV || 'not set'}`);
-    console.log(`📦 DATABASE_URL: ${process.env.DATABASE_URL ? 'SET' : 'NOT SET'}`);
-    
-    // Test connection
-    await prisma.$queryRaw`SELECT 1`;
-    console.log("✅ Connected to PostgreSQL database via Prisma");
-  } catch (error) {
-    console.error("❌ Tidak bisa connect ke PostgreSQL!");
-    console.error("Database initialization error:", error.message);
-    throw error;
+  console.log(`🌍 NODE_ENV: ${process.env.NODE_ENV || 'not set'}`);
+  console.log(`📦 DATABASE_URL: ${process.env.DATABASE_URL ? 'SET' : 'NOT SET'}`);
+
+  for (let attempt = 1; attempt <= MAX_DB_CONNECT_ATTEMPTS; attempt++) {
+    try {
+      await prisma.$queryRaw`SELECT 1`;
+      console.log("✅ Connected to PostgreSQL database via Prisma");
+      return;
+    } catch (error) {
+      const shouldRetry = attempt < MAX_DB_CONNECT_ATTEMPTS && isTransientConnectionError(error);
+      if (!shouldRetry) {
+        console.error("❌ Tidak bisa connect ke PostgreSQL!");
+        console.error("Database initialization error:", error.message);
+        throw error;
+      }
+
+      const delayMs = Math.min(1000 * 2 ** (attempt - 1), 8000);
+      console.warn(`Koneksi database gagal (${attempt}/${MAX_DB_CONNECT_ATTEMPTS}); mencoba lagi dalam ${delayMs / 1000} detik.`);
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+    }
   }
 }
 

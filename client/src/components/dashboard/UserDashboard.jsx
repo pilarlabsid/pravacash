@@ -4,7 +4,7 @@ import { formatCurrency } from '../../lib/format';
 import { UserFinancialCharts } from './UserFinancialCharts';
 import { TransactionTable } from './TransactionTable';
 
-export const UserDashboard = ({ totals, sortedEntries, runningEntries, txHook, settings, validatePin, modalRef }) => {
+export const UserDashboard = ({ totals, sortedEntries, runningEntries, txHook, settings, validatePin, modalRef, chartGranularity, setChartGranularity }) => {
   return (
     <>
       <section className="space-y-3 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-6">
@@ -73,8 +73,8 @@ export const UserDashboard = ({ totals, sortedEntries, runningEntries, txHook, s
         </div>
       </section>
 
-      <section className="grid gap-6">
-        <UserFinancialCharts entries={sortedEntries} totals={totals} timezone={settings?.timezone} />
+      <section className="grid min-w-0 gap-4">
+        <UserFinancialCharts entries={sortedEntries} totals={totals} timezone={settings?.timezone} chartGranularity={chartGranularity} setChartGranularity={setChartGranularity} />
 
         <TransactionTable
           loading={txHook.loading} runningEntries={runningEntries}

@@ -19,7 +19,7 @@ export const TransactionTable = ({
   };
 
   return (
-    <section className="grid gap-6">
+    <section className="grid min-w-0 gap-6">
       <div className="rounded-3xl bg-white p-6 shadow-soft">
         <div className="flex flex-col gap-2 pb-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
@@ -112,79 +112,77 @@ export const TransactionTable = ({
 
             {/* Mobile Cards */}
             <div className="md:hidden">
-              <div className="space-y-3">
+              <div className="max-h-[360px] overflow-x-hidden overflow-y-auto overscroll-contain rounded-2xl border border-slate-100 p-1">
+                <div className="space-y-2">
                 {runningEntries.map((entry) => (
                   <div
                     key={`${entry.id}-mobile`}
-                    className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm transition hover:shadow-md"
+                    className="rounded-2xl border border-slate-100 bg-white p-3 shadow-sm transition hover:shadow-md"
                   >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex items-start gap-3 min-w-0">
-                        {/* Transaction Icon Indicator */}
-                        <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${
-                          entry.type === "income" ? "bg-emerald-50 text-emerald-600" : "bg-rose-50 text-rose-600"
-                        }`}>
-                          <span className="text-base font-bold">
-                            {entry.type === "income" ? "↓" : "↑"}
-                          </span>
-                        </div>
-
-                        <div className="min-w-0">
-                          <p className="text-sm font-bold text-slate-900 truncate">
-                            {entry.description}
-                          </p>
-                          <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                            <span className="text-[10px] font-semibold text-slate-400">
-                              {formatDate(entry.date, timezone || "Asia/Jakarta")}
-                            </span>
-                            <span className="text-[10px] text-slate-300">•</span>
-                            <span className="px-2 py-0.5 text-[10px] font-semibold rounded-md bg-slate-100 text-slate-600">
-                              {entry.category || (entry.type === "income" ? "Gaji" : "Lainnya")}
-                            </span>
+                    <div className="flex items-start gap-2">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-slate-50">
+                        <span className={`text-sm font-bold ${entry.type === "income" ? "text-emerald-600" : "text-rose-600"}`}>
+                          {entry.type === "income" ? "↓" : "↑"}
+                        </span>
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-bold text-slate-900">
+                              {entry.description}
+                            </p>
+                            <div className="mt-0.5 flex flex-wrap items-center gap-1">
+                              <span className="text-[10px] font-semibold text-slate-400">
+                                {formatDate(entry.date, timezone || "Asia/Jakarta")}
+                              </span>
+                              <span className="text-[10px] text-slate-300">•</span>
+                              <span className="rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600">
+                                {entry.category || (entry.type === "income" ? "Gaji" : "Lainnya")}
+                              </span>
+                            </div>
                           </div>
-                          {entry.proof_url && (
-                            <a
-                              href={entry.proof_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="mt-1.5 inline-block text-[11px] font-bold text-emerald-600 hover:underline"
+                          <div className="flex shrink-0 flex-col items-end gap-1">
+                            <button
+                              onClick={() => openModal(entry)}
+                              className="rounded-lg bg-slate-100 px-2 py-1 text-[10px] font-bold text-slate-600 transition hover:bg-slate-200 active:scale-95"
                             >
-                              Lihat Bukti Foto
-                            </a>
-                          )}
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => handleDelete(entry.id)}
+                              className="rounded-lg bg-rose-50 px-2 py-1 text-[10px] font-bold text-rose-600 transition hover:bg-rose-100 active:scale-95"
+                            >
+                              Hapus
+                            </button>
+                          </div>
+                        </div>
+
+                        {entry.proof_url && (
+                          <a
+                            href={entry.proof_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="mt-1 inline-block text-[10px] font-bold text-emerald-600 hover:underline"
+                          >
+                            Lihat Bukti Foto
+                          </a>
+                        )}
+
+                        <div className="mt-1.5 flex items-center justify-between gap-2 border-t border-slate-50 pt-1.5">
+                          <p className={`text-xs font-extrabold ${
+                            entry.type === "income" ? "text-emerald-600" : "text-rose-600"
+                          }`}>
+                            {entry.type === "income" ? "+" : "-"}{formatCurrency(entry.amount)}
+                          </p>
+                          <p className="text-[10px] font-medium text-slate-400">
+                            Saldo: {formatCurrency(entry.runningBalance)}
+                          </p>
                         </div>
                       </div>
-
-                      {/* Amount & Running Balance */}
-                      <div className="text-right shrink-0">
-                        <p className={`text-sm sm:text-base font-extrabold ${
-                          entry.type === "income" ? "text-emerald-600" : "text-rose-600"
-                        }`}>
-                          {entry.type === "income" ? "+" : "-"}{formatCurrency(entry.amount)}
-                        </p>
-                        <p className="mt-0.5 text-[11px] font-medium text-slate-400">
-                          Saldo: {formatCurrency(entry.runningBalance)}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Action Buttons */}
-                    <div className="mt-3 flex items-center justify-end gap-2 border-t border-slate-50 pt-2.5">
-                      <button
-                        onClick={() => openModal(entry)}
-                        className="rounded-xl bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-600 transition hover:bg-slate-200 active:scale-95"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => handleDelete(entry.id)}
-                        className="rounded-xl bg-rose-50 px-3 py-1.5 text-xs font-bold text-rose-600 transition hover:bg-rose-100 active:scale-95"
-                      >
-                        Hapus
-                      </button>
                     </div>
                   </div>
                 ))}
+                </div>
               </div>
             </div>
           </>

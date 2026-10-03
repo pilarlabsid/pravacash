@@ -377,12 +377,12 @@ export const useTransactions = ({ token, isAuthenticated, settings, setToast, au
     }
   };
 
-  const handleDownloadPdf = async (runningEntries, totals, user, validatePin) => {
+  const handleDownloadPdf = async (runningEntries, totals, user, validatePin, granularity = "week") => {
     if (!runningEntries.length) { setToast({ type: "error", message: "Belum ada transaksi untuk diunduh." }); return; }
     if (settings.pinEnabled && !(await validatePin())) return;
     try {
       const { generateTransactionPDF } = await import("../utils/pdfExport");
-      generateTransactionPDF({ transactions: runningEntries, summary: totals, user, timezone: settings.timezone || "Asia/Jakarta" });
+      generateTransactionPDF({ transactions: runningEntries, summary: totals, user, timezone: settings.timezone || "Asia/Jakarta", granularity });
       setToast({ type: "success", message: "Laporan PDF siap diunduh." });
     } catch (error) {
       setToast({ type: "error", message: "Gagal membuat laporan PDF." });

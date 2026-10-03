@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useRef, useState } from "react";
 import { DEFAULT_DATA_TIMEZONE, formatCurrency } from "../../lib/format";
 
 const toAmount = (value) => {
@@ -29,23 +29,18 @@ const getCurrentMonthKey = (timezone) => {
   return getMonthKey(new Date().toISOString(), timezone || DEFAULT_DATA_TIMEZONE);
 };
 
-// Helper: get last N month keys in a given timezone
-const getLastNMonthKeys = (n, timezone) => {
-  const tz = timezone || DEFAULT_DATA_TIMEZONE;
-  const result = [];
-  const curMonthKey = getCurrentMonthKey(tz);
-  // parse curMonthKey to get year/month
-  const [curYear, curMonth] = curMonthKey.split("-").map(Number);
-  for (let i = n - 1; i >= 0; i--) {
-    let m = curMonth - i;
-    let y = curYear;
-    while (m <= 0) { m += 12; y--; }
-    const key = `${y}-${String(m).padStart(2, "0")}`;
-    const label = new Intl.DateTimeFormat("id-ID", { month: "short", timeZone: tz })
-      .format(new Date(Date.UTC(y, m - 1, 1, 12)));
-    result.push({ key, label });
+const getDayOfMonth = (dateStr, timezone) => {
+  const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return 0;
+  try {
+    const day = new Intl.DateTimeFormat("en-CA", {
+      timeZone: timezone || DEFAULT_DATA_TIMEZONE,
+      day: "2-digit",
+    }).formatToParts(date).find((part) => part.type === "day")?.value;
+    return Number(day) || 0;
+  } catch (error) {
+    return date.getDate();
   }
-  return result;
 };
 
 const CATEGORY_COLORS = {
@@ -61,36 +56,74 @@ const FALLBACK_PALETTE = ["#06b6d4", "#14b8a6", "#84cc16", "#e11d48", "#6366f1"]
 const getColor = (cat, idx) => CATEGORY_COLORS[cat] || FALLBACK_PALETTE[idx % FALLBACK_PALETTE.length];
 
 /* ── Monthly Bar Chart ──────────────────────────────── */
-const MonthlyBarChart = ({ entries, timezone }) => {
+const MonthlyBarChart = ({ entries, timezone, granularity, setGranularity }) => {
   const tz = timezone || DEFAULT_DATA_TIMEZONE;
-  const monthlyData = (() => {
-    const months = getLastNMonthKeys(6, tz);
-    return months.map(({ key, label }) => {
-      const inc = entries.filter((t) => t.type === "income" && getMonthKey(t.date, tz) === key).reduce((sum, t) => sum + toAmount(t.amount), 0);
-      const exp = entries.filter((t) => t.type === "expense" && getMonthKey(t.date, tz) === key).reduce((sum, t) => sum + toAmount(t.amount), 0);
-      return { label, inc, exp };
-    });
-  })();
+  const currentMonthKey = getCurrentMonthKey(tz);
+  const [year, month] = currentMonthKey.split("-").map(Number);
+  const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  const firstDayOffset = (new Date(Date.UTC(year, month - 1, 1)).getUTCDay() + 6) % 7;
+  const weekCount = Math.ceil((daysInMonth + firstDayOffset) / 7);
+  const periodCount = granularity === "week" ? weekCount : daysInMonth;
+  const monthlyData = Array.from({ length: periodCount }, (_, index) => ({
+    label: granularity === "week" ? `Minggu ${index + 1}` : String(index + 1),
+    inc: 0,
+    exp: 0,
+  }));
+
+  entries.forEach((entry) => {
+    if (getMonthKey(entry.date, tz) !== currentMonthKey) return;
+    const day = getDayOfMonth(entry.date, tz);
+    const index = granularity === "week"
+      ? Math.floor((day + firstDayOffset - 1) / 7)
+      : day - 1;
+    if (index < 0 || index >= monthlyData.length) return;
+    if (entry.type === "income") monthlyData[index].inc += toAmount(entry.amount);
+    if (entry.type === "expense") monthlyData[index].exp += toAmount(entry.amount);
+  });
+
   const maxBar = Math.max(...monthlyData.flatMap((m) => [m.inc, m.exp]), 1);
 
   return (
-    <div className="rounded-3xl bg-white p-6 shadow-soft">
-      <p className="mb-1 text-sm font-semibold uppercase tracking-wide text-slate-500">Grafik 6 Bulan Terakhir</p>
-      <div className="w-full -mt-8">
-        <svg viewBox="0 0 720 300" width="100%" height="250" className="block w-full" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Perbandingan pemasukan dan pengeluaran enam bulan terakhir">
+    <div className="rounded-3xl bg-white p-4 shadow-soft sm:p-6">
+      <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
+        <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">Grafik Bulan Ini</p>
+        <div className="inline-flex rounded-xl bg-slate-100 p-1" role="group" aria-label="Kelompok waktu grafik">
+          {[{ value: "day", label: "Hari" }, { value: "week", label: "Minggu" }].map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => setGranularity(option.value)}
+              className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition ${granularity === option.value ? "bg-white text-emerald-700 shadow-sm" : "text-slate-500 hover:text-slate-800"}`}
+              aria-pressed={granularity === option.value}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="w-full -mt-2">
+        <svg viewBox="0 0 720 360" width="100%" className="block h-auto w-full" preserveAspectRatio="xMidYMid meet" role="img" aria-label={`Perbandingan pemasukan dan pengeluaran ${granularity === "week" ? "per minggu" : "per hari"} bulan ini`}>
           {monthlyData.map((m, i) => {
-            const bW = 42, gap = 112, x0 = 42 + i * gap;
-            const incH = (m.inc / maxBar) * 150;
-            const expH = (m.exp / maxBar) * 150;
+            const groupWidth = 660 / periodCount;
+            const barWidth = granularity === "week" ? 32 : 6;
+            const barGap = granularity === "week" ? 6 : 2;
+            const x0 = 30 + i * groupWidth + (groupWidth - (barWidth * 2 + barGap)) / 2;
+            const incH = (m.inc / maxBar) * 190;
+            const expH = (m.exp / maxBar) * 190;
+            const showLabel = granularity === "week" || i === 0 || (i + 1) % 5 === 0 || i === periodCount - 1;
             return (
               <g key={i}>
-                <rect x={x0} y={232 - incH} width={bW} height={incH || 3} rx="6" fill="#10b981" opacity="0.85" />
-                <rect x={x0 + bW + 8} y={232 - expH} width={bW} height={expH || 3} rx="6" fill="#f43f5e" opacity="0.75" />
-                <text x={x0 + bW + 4} y="264" textAnchor="middle" fontSize="18" fill="#94a3b8">{m.label}</text>
+                <rect x={x0} y={282 - incH} width={barWidth} height={incH || 3} rx="4" fill="#10b981" opacity="0.85" />
+                <rect x={x0 + barWidth + barGap} y={282 - expH} width={barWidth} height={expH || 3} rx="4" fill="#f43f5e" opacity="0.75" />
+                {showLabel && (
+                  <text x={30 + i * groupWidth + groupWidth / 2} y="320" textAnchor="middle" fontSize={granularity === "week" ? "14" : "12"} fill="#94a3b8">
+                    {granularity === "week" ? `M${i + 1}` : m.label}
+                  </text>
+                )}
               </g>
             );
           })}
-          <line x1="30" y1="232" x2="690" y2="232" stroke="#e2e8f0" strokeWidth="2" />
+          <line x1="30" y1="282" x2="690" y2="282" stroke="#e2e8f0" strokeWidth="2" />
           <rect x="30" y="30" width="14" height="14" rx="3" fill="#10b981" /><text x="54" y="42" fontSize="16" fill="#64748b">Pemasukan</text>
           <rect x="190" y="30" width="14" height="14" rx="3" fill="#f43f5e" /><text x="214" y="42" fontSize="16" fill="#64748b">Pengeluaran</text>
         </svg>
@@ -103,79 +136,106 @@ const MonthlyBarChart = ({ entries, timezone }) => {
 const TrendChart = ({ entries, timezone }) => {
   const tz = timezone || DEFAULT_DATA_TIMEZONE;
   const currentMonthKey = getCurrentMonthKey(tz);
-  const monthEntries = entries.filter((t) => getMonthKey(t.date, tz) === currentMonthKey).sort((a, b) => new Date(a.date) - new Date(b.date));
+  const monthEntries = entries.filter((t) => getMonthKey(t.date, tz) === currentMonthKey);
 
   if (monthEntries.length === 0) {
     return (
-      <div className="rounded-3xl bg-white p-6 shadow-soft">
-        <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">Tren Pemasukan & Pengeluaran (Bulan Ini)</p>
+      <div className="rounded-3xl bg-white p-4 shadow-soft sm:p-6">
+        <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">Tren Akumulasi Bulan Ini</p>
         <p className="mt-4 text-sm text-slate-400">Belum ada transaksi bulan ini</p>
       </div>
     );
   }
 
-
-  let totalInc = 0, totalExp = 0;
-  const pointsData = monthEntries.map((t) => {
-    if (t.type === "income") totalInc += toAmount(t.amount);
-    if (t.type === "expense") totalExp += toAmount(t.amount);
-    return { date: t.date, inc: totalInc, exp: totalExp };
+  const [year, month] = currentMonthKey.split("-").map(Number);
+  const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  const currentDay = Math.min(getDayOfMonth(new Date().toISOString(), tz), daysInMonth);
+  const dailyTotals = Array.from({ length: currentDay }, () => ({ income: 0, expense: 0 }));
+  monthEntries.forEach((entry) => {
+    const dayIndex = getDayOfMonth(entry.date, tz) - 1;
+    if (dayIndex >= 0 && dayIndex < dailyTotals.length) {
+      dailyTotals[dayIndex][entry.type === "income" ? "income" : "expense"] += toAmount(entry.amount);
+    }
   });
 
-  const maxVal = Math.max(...pointsData.map((d) => Math.max(d.inc, d.exp)), 1);
-  const w = 720, h = 155, padX = 55, padY = 48;
-  const getX = (i) => padX + (i * ((w - 2 * padX) / Math.max(pointsData.length - 1, 1)));
-  const getY = (val) => padY + h - (val / maxVal) * h;
-
-  const ptsInc = pointsData.map((d, i) => `${getX(i)},${getY(d.inc)}`).join(" ");
-  const ptsExp = pointsData.map((d, i) => `${getX(i)},${getY(d.exp)}`).join(" ");
-  const areaInc = `${getX(0)},${padY + h} ${ptsInc} ${getX(pointsData.length - 1)},${padY + h}`;
-  const areaExp = `${getX(0)},${padY + h} ${ptsExp} ${getX(pointsData.length - 1)},${padY + h}`;
+  let accumulatedIncome = 0;
+  let accumulatedExpense = 0;
+  const pointsData = dailyTotals.map((day, index) => {
+    accumulatedIncome += day.income;
+    accumulatedExpense += day.expense;
+    return {
+      day: index + 1,
+      income: accumulatedIncome,
+      expense: accumulatedExpense,
+      net: accumulatedIncome - accumulatedExpense,
+    };
+  });
+  const finalNet = pointsData.at(-1)?.net || 0;
+  const values = pointsData.flatMap((point) => [point.income, point.expense, point.net]);
+  const minVal = Math.min(...values, 0);
+  const maxVal = Math.max(...values, 1);
+  const valueRange = Math.max(maxVal - minVal, 1);
+  const w = 720, h = 190, padX = 55, padY = 36;
+  const zeroY = padY + h - ((0 - minVal) / valueRange) * h;
+  const getX = (index) => padX + (index * ((w - 2 * padX) / Math.max(pointsData.length - 1, 1)));
+  const getY = (value) => padY + h - ((value - minVal) / valueRange) * h;
+  const getLinePoints = (key) => pointsData.map((point, index) => `${getX(index)},${getY(point[key])}`).join(" ");
+  const showDayLabel = (day) => day === 1 || day % 5 === 0 || day === currentDay;
 
   return (
-    <div className="rounded-3xl bg-white p-6 shadow-soft">
-      <div className="mb-1 flex items-center justify-between">
-        <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">Tren Pemasukan & Pengeluaran (Bulan Ini)</p>
+    <div className="rounded-3xl bg-white p-4 shadow-soft sm:p-6">
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+        <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">Tren Akumulasi Bulan Ini</p>
       </div>
-      <div className="w-full -mt-8">
-        <svg viewBox="0 0 720 300" width="100%" height="250" className="block w-full" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Tren pemasukan dan pengeluaran bulan ini">
-          <defs>
-            <linearGradient id="incGradTrend" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#10b981" stopOpacity="0.25" /><stop offset="100%" stopColor="#10b981" stopOpacity="0.0" /></linearGradient>
-            <linearGradient id="expGradTrend" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#f43f5e" stopOpacity="0.20" /><stop offset="100%" stopColor="#f43f5e" stopOpacity="0.0" /></linearGradient>
-          </defs>
+      <div className="mb-1 flex flex-wrap gap-x-3 gap-y-1 text-[10px] font-semibold text-slate-600">
+        <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-emerald-500" />Pemasukan kumulatif</span>
+        <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-rose-500" />Pengeluaran kumulatif</span>
+        <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-blue-600" />Arus kas bersih</span>
+      </div>
+      <div className="w-full">
+        <svg viewBox="0 0 720 300" width="100%" className="block h-auto w-full" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Pemasukan kumulatif, pengeluaran kumulatif, dan arus kas bersih per hari bulan ini">
           <line x1={padX} y1={padY} x2={w - padX} y2={padY} stroke="#f1f5f9" strokeWidth="1" strokeDasharray="3 3" />
-          <line x1={padX} y1={padY + h / 2} x2={w - padX} y2={padY + h / 2} stroke="#f1f5f9" strokeWidth="1" strokeDasharray="3 3" />
-          <line x1={padX} y1={padY + h} x2={w - padX} y2={padY + h} stroke="#e2e8f0" strokeWidth="1" />
-          <polygon points={areaInc} fill="url(#incGradTrend)" />
-          <polygon points={areaExp} fill="url(#expGradTrend)" />
-          <polyline points={ptsInc} fill="none" stroke="#10b981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-          <polyline points={ptsExp} fill="none" stroke="#f43f5e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-          {pointsData.map((d, i) => (
-            <g key={i}>
-              <circle cx={getX(i)} cy={getY(d.inc)} r="7" fill="#fff" stroke="#10b981" strokeWidth="4"><title>{`Pemasukan: ${formatCurrency(d.inc)}`}</title></circle>
-              <circle cx={getX(i)} cy={getY(d.exp)} r="7" fill="#fff" stroke="#f43f5e" strokeWidth="4"><title>{`Pengeluaran: ${formatCurrency(d.exp)}`}</title></circle>
+          <line x1={padX} y1={zeroY} x2={w - padX} y2={zeroY} stroke="#cbd5e1" strokeWidth="1.5" />
+          <line x1={padX} y1={padY + h} x2={w - padX} y2={padY + h} stroke="#f1f5f9" strokeWidth="1" strokeDasharray="3 3" />
+          <polyline points={getLinePoints("income")} fill="none" stroke="#10b981" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+          <polyline points={getLinePoints("expense")} fill="none" stroke="#f43f5e" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+          <polyline points={getLinePoints("net")} fill="none" stroke="#2563eb" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+          {pointsData.map((point, index) => (
+            <g key={point.day}>
+              {showDayLabel(point.day) && (
+                <text x={getX(index)} y={padY + h + 22} textAnchor="middle" fontSize="13" fill="#94a3b8">{point.day}</text>
+              )}
             </g>
           ))}
-          <g transform={`translate(${padX}, ${padY + h + 42})`}>
-            <circle cx="7" cy="5" r="7" fill="#10b981" /><text x="23" y="11" fontSize="16" fontWeight="600" fill="#047857">Pemasukan: {formatCurrency(totalInc)}</text>
-            <circle cx="350" cy="5" r="7" fill="#f43f5e" /><text x="366" y="11" fontSize="16" fontWeight="600" fill="#b91c1c">Pengeluaran: {formatCurrency(totalExp)}</text>
-          </g>
         </svg>
       </div>
+      <p className={`text-right text-xs font-bold ${finalNet >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
+        Akumulasi bersih: {finalNet >= 0 ? "+" : ""}{formatCurrency(finalNet)}
+      </p>
     </div>
   );
 };
 
 /* ── Ratio Donut Chart ──────────────────────────────── */
-const RatioChart = ({ totals }) => {
-  const totalInc = toAmount(totals.income);
-  const totalExp = toAmount(totals.expense);
+const RatioChart = ({ entries, timezone }) => {
+  const tz = timezone || DEFAULT_DATA_TIMEZONE;
+  const currentMonthKey = getCurrentMonthKey(tz);
+  const monthTotals = entries.reduce((result, entry) => {
+    if (getMonthKey(entry.date, tz) === currentMonthKey) {
+      if (entry.type === "income") result.income += toAmount(entry.amount);
+      if (entry.type === "expense") result.expense += toAmount(entry.amount);
+    }
+    return result;
+  }, { income: 0, expense: 0 });
+  const totalInc = monthTotals.income;
+  const totalExp = monthTotals.expense;
+  const netBalance = totalInc - totalExp;
   const grandTotal = totalInc + totalExp;
 
   if (grandTotal === 0) {
     return (
-      <div className="rounded-3xl bg-white p-6 shadow-soft flex flex-col justify-between">
-        <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">Rasio Pemasukan vs Pengeluaran</p>
+      <div className="rounded-3xl bg-white p-4 shadow-soft flex flex-col justify-between sm:p-6">
+        <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">Rasio Bulan Ini</p>
         <div className="py-10 text-center text-sm text-slate-400">Belum ada data transaksi</div>
       </div>
     );
@@ -187,16 +247,16 @@ const RatioChart = ({ totals }) => {
   const incArc = (totalInc / grandTotal) * circ;
 
   return (
-    <div className="rounded-3xl bg-white p-6 shadow-soft flex flex-col justify-between">
-      <div className="flex items-center justify-between mb-2">
-        <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">Rasio Pemasukan vs Pengeluaran</p>
+    <div className="rounded-3xl bg-white p-4 shadow-soft flex flex-col justify-between sm:p-6">
+      <div className="mb-2 flex items-center justify-between">
+        <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">Rasio Bulan Ini</p>
         <span className={`px-2.5 py-0.5 text-xs font-bold rounded-full ${totalInc >= totalExp ? "bg-emerald-50 text-emerald-600 border border-emerald-200" : "bg-rose-50 text-rose-600 border border-rose-200"}`}>
           {totalInc >= totalExp ? "Arus Kas Sehat" : "Defisit"}
         </span>
       </div>
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-6 my-auto pt-2">
+      <div className="flex flex-row items-center justify-between gap-2 my-auto pt-2 sm:gap-6">
         <div className="relative flex-shrink-0">
-          <svg width="130" height="130" viewBox="0 0 100 100" className="transform -rotate-90">
+          <svg width="120" height="120" viewBox="0 0 100 100" className="transform -rotate-90 sm:h-[130px] sm:w-[130px]">
             <circle cx={cx} cy={cy} r={r} fill="none" stroke="#fecdd3" strokeWidth="12" />
             <circle cx={cx} cy={cy} r={r} fill="none" stroke="#10b981" strokeWidth="12" strokeDasharray={`${incArc} ${circ - incArc}`} strokeLinecap="round" className="transition-all duration-700 ease-out" />
           </svg>
@@ -205,7 +265,7 @@ const RatioChart = ({ totals }) => {
             <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Pemasukan</span>
           </div>
         </div>
-        <div className="w-full space-y-3.5">
+        <div className="min-w-0 flex-1 space-y-3 sm:space-y-3.5">
           <div>
             <div className="flex justify-between items-center text-xs mb-1">
               <span className="font-semibold text-slate-700 flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block shadow-sm"></span>Pemasukan</span>
@@ -222,8 +282,8 @@ const RatioChart = ({ totals }) => {
           </div>
           <div className="pt-1 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
             <span>Saldo Bersih:</span>
-            <span className={`font-bold ${totals.balance >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
-              {totals.balance >= 0 ? "+" : ""}{formatCurrency(totals.balance)}
+            <span className={`font-bold ${netBalance >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
+              {netBalance >= 0 ? "+" : ""}{formatCurrency(netBalance)}
             </span>
           </div>
         </div>
@@ -240,7 +300,7 @@ const CategoryBreakdown = ({ entries, timezone }) => {
 
   if (monthExp.length === 0) {
     return (
-      <div className="rounded-3xl bg-white p-6 shadow-soft flex flex-col justify-between">
+      <div className="rounded-3xl bg-white p-4 shadow-soft flex flex-col justify-between sm:p-6">
         <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">Pengeluaran per Kategori (Bulan Ini)</p>
         <div className="py-10 text-center text-sm text-slate-400">Belum ada pengeluaran bulan ini</div>
       </div>
@@ -259,13 +319,13 @@ const CategoryBreakdown = ({ entries, timezone }) => {
   let currentOffset = 0;
 
   return (
-    <div className="rounded-3xl bg-white p-6 shadow-soft flex flex-col justify-between">
+    <div className="rounded-3xl bg-white p-4 shadow-soft flex flex-col justify-between sm:p-6">
       <div className="flex items-center justify-between mb-2">
         <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">Pengeluaran per Kategori (Bulan Ini)</p>
       </div>
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-6 my-auto pt-2">
+      <div className="flex flex-row items-center justify-between gap-2 my-auto pt-2 sm:gap-6">
         <div className="relative flex-shrink-0">
-          <svg width="130" height="130" viewBox="0 0 100 100" className="transform -rotate-90">
+          <svg width="120" height="120" viewBox="0 0 100 100" className="transform -rotate-90 sm:h-[130px] sm:w-[130px]">
             <circle cx={cx} cy={cy} r={r} fill="none" stroke="#f1f5f9" strokeWidth="12" />
             {sortedCats.map(([cat, amt], i) => {
               const pct = amt / totalMExp;
@@ -287,7 +347,7 @@ const CategoryBreakdown = ({ entries, timezone }) => {
             </span>
           </div>
         </div>
-        <div className="w-full space-y-2.5 max-h-44 overflow-y-auto pr-1">
+        <div className="min-w-0 max-h-36 flex-1 space-y-2.5 overflow-y-auto pr-1">
           {sortedCats.map(([cat, amt], i) => {
             const pct = Math.round((amt / totalMExp) * 100);
             const color = getColor(cat, i);
@@ -316,15 +376,58 @@ const CategoryBreakdown = ({ entries, timezone }) => {
 };
 
 /* ── Main Export ─────────────────────────────────────── */
-export const UserFinancialCharts = ({ entries = [], totals = { income: 0, expense: 0, balance: 0 }, timezone }) => {
+export const UserFinancialCharts = ({ entries = [], totals = { income: 0, expense: 0, balance: 0 }, timezone, chartGranularity = "week", setChartGranularity }) => {
   const tz = timezone || DEFAULT_DATA_TIMEZONE;
+  const carouselRef = useRef(null);
+  const [activeChart, setActiveChart] = useState(0);
+  const charts = [
+    { label: "Arus Kas Bersih Bulan Ini", content: <TrendChart entries={entries} timezone={tz} /> },
+    { label: "Grafik Bulan Ini", content: <MonthlyBarChart entries={entries} timezone={tz} granularity={chartGranularity} setGranularity={setChartGranularity} /> },
+    { label: "Rasio Bulan Ini", content: <RatioChart entries={entries} timezone={tz} /> },
+    { label: "Pengeluaran per Kategori", content: <CategoryBreakdown entries={entries} timezone={tz} /> },
+  ];
 
   return (
-    <section className="mb-6 grid gap-6 md:grid-cols-2">
-      <MonthlyBarChart entries={entries} timezone={tz} />
-      <TrendChart entries={entries} timezone={tz} />
-      <RatioChart totals={totals} />
-      <CategoryBreakdown entries={entries} timezone={tz} />
+    <section className="min-w-0">
+      <div
+        ref={carouselRef}
+        onScroll={(event) => {
+          const { clientWidth, scrollLeft } = event.currentTarget;
+          if (clientWidth > 0) setActiveChart(Math.round(scrollLeft / clientWidth));
+        }}
+        className="flex w-full min-w-0 snap-x snap-mandatory overflow-x-auto scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:grid md:grid-cols-2 md:gap-6 md:overflow-visible md:snap-none"
+        role="region"
+        aria-label="Carousel grafik keuangan"
+        aria-roledescription="carousel"
+        tabIndex={0}
+      >
+        {charts.map((chart, index) => (
+          <div
+            key={chart.label}
+            className="w-full min-w-0 shrink-0 basis-full snap-center md:w-auto md:basis-auto md:snap-none"
+            role="group"
+            aria-roledescription="slide"
+            aria-label={`${index + 1} dari ${charts.length}: ${chart.label}`}
+          >
+            {chart.content}
+          </div>
+        ))}
+      </div>
+      <div className="mt-3 flex justify-center gap-2 md:hidden">
+        {charts.map((chart, index) => (
+          <button
+            key={chart.label}
+            type="button"
+            onClick={() => carouselRef.current?.scrollTo({
+              left: index * carouselRef.current.clientWidth,
+              behavior: "smooth",
+            })}
+            className={`h-2.5 rounded-full transition-all ${activeChart === index ? "w-6 bg-emerald-600" : "w-2.5 bg-slate-300"}`}
+            aria-label={`Tampilkan grafik: ${chart.label}`}
+            aria-pressed={activeChart === index}
+          />
+        ))}
+      </div>
     </section>
   );
 };

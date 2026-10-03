@@ -9,8 +9,9 @@ import { formatCurrency, formatDate, getTimezoneLabel } from "../lib/format";
  * @param {Object} params.summary - Summary data (income, expense, balance)
  * @param {Object} params.user - User data
  * @param {string} params.dateRange - Range tanggal (opsional)
+ * @param {string} params.granularity - Agregasi chart bulan berjalan (day atau week)
  */
-export const generateTransactionPDF = ({ transactions, summary, user, dateRange = null, timezone = "Asia/Jakarta" }) => {
+export const generateTransactionPDF = ({ transactions, summary, user, dateRange = null, timezone = "Asia/Jakarta", granularity = "week" }) => {
     const doc = new jsPDF();
 
     // ... (kode header dan summary tetap sama)
@@ -148,16 +149,50 @@ export const generateTransactionPDF = ({ transactions, summary, user, dateRange 
     doc.text(`Total: ${transactions.length} transaksi`,
         startX + (colWidth * 2) + colWidth / 2, yPosition + 28, { align: "center" });
 
-    const monthly = new Map();
-    transactions.forEach((transaction) => {
-        const date = new Date(transaction.date);
-        const parts = new Intl.DateTimeFormat("en-CA", { timeZone: timezone, year: "numeric", month: "2-digit" }).formatToParts(date);
-        const key = `${parts.find((part) => part.type === "year")?.value}-${parts.find((part) => part.type === "month")?.value}`;
-        const current = monthly.get(key) || { income: 0, expense: 0 };
-        current[transaction.type === "income" ? "income" : "expense"] += Number(transaction.amount) || 0;
-        monthly.set(key, current);
+    const getDateParts = (value) => new Intl.DateTimeFormat("en-CA", {
+        timeZone: timezone,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+    }).formatToParts(new Date(value));
+    const getMonthKey = (value) => {
+        const parts = getDateParts(value);
+        return `${parts.find((part) => part.type === "year")?.value}-${parts.find((part) => part.type === "month")?.value}`;
+    };
+    const getDayOfMonth = (value) => Number(getDateParts(value).find((part) => part.type === "day")?.value) || 0;
+    const now = new Date();
+    const currentKey = getMonthKey(now);
+    const [currentYear, currentMonth] = currentKey.split("-").map(Number);
+    const daysInMonth = new Date(Date.UTC(currentYear, currentMonth, 0)).getUTCDate();
+    const firstDayOffset = (new Date(Date.UTC(currentYear, currentMonth - 1, 1)).getUTCDay() + 6) % 7;
+    const weekCount = Math.ceil((daysInMonth + firstDayOffset) / 7);
+    const currentDay = Math.min(getDayOfMonth(now), daysInMonth);
+    const trendEntries = transactions.filter((transaction) => getMonthKey(transaction.date) === currentKey);
+    const chartPeriodCount = granularity === "day" ? daysInMonth : weekCount;
+    const chartPeriods = Array.from({ length: chartPeriodCount }, () => ({ income: 0, expense: 0 }));
+    const dailyTotals = Array.from({ length: currentDay }, () => ({ income: 0, expense: 0 }));
+    const currentMonthTotals = { income: 0, expense: 0 };
+
+    trendEntries.forEach((transaction) => {
+        const amount = Number(transaction.amount) || 0;
+        const day = getDayOfMonth(transaction.date);
+        const periodIndex = granularity === "day" ? day - 1 : Math.floor((day + firstDayOffset - 1) / 7);
+        if (periodIndex >= 0 && periodIndex < chartPeriods.length) {
+            chartPeriods[periodIndex][transaction.type === "income" ? "income" : "expense"] += amount;
+        }
+        if (day > 0 && day <= dailyTotals.length) {
+            dailyTotals[day - 1][transaction.type === "income" ? "income" : "expense"] += amount;
+        }
+        currentMonthTotals[transaction.type === "income" ? "income" : "expense"] += amount;
     });
-    const months = [...monthly.entries()].slice(-6);
+
+    let accumulatedIncome = 0;
+    let accumulatedExpense = 0;
+    const trendPoints = dailyTotals.map((day) => {
+        accumulatedIncome += day.income;
+        accumulatedExpense += day.expense;
+        return { income: accumulatedIncome, expense: accumulatedExpense, net: accumulatedIncome - accumulatedExpense };
+    });
     const categoryColors = [[244, 63, 94], [59, 130, 246], [245, 158, 11], [139, 92, 246], [16, 185, 129], [100, 116, 139]];
     const drawPanel = (x, y, title) => {
         doc.setFillColor(...lightGray);
@@ -188,55 +223,72 @@ export const generateTransactionPDF = ({ transactions, summary, user, dateRange 
     doc.setTextColor(...darkGray);
     doc.text("GRAFIK RINGKASAN", 20, 116);
 
-    // 1. Grafik 6 bulan terakhir
-    drawPanel(20, 122, "6 BULAN TERAKHIR");
-    const monthlyMax = Math.max(...months.flatMap(([, value]) => [value.income, value.expense]), 1);
-    doc.setDrawColor(203, 213, 225); doc.setLineWidth(0.4); doc.line(27, 162, 96, 162);
-    months.forEach(([key, value], index) => {
-        const x = 29 + index * (64 / Math.max(months.length, 1));
-        doc.setFillColor(...greenColor); doc.roundedRect(x, 162 - (value.income / monthlyMax) * 30, 3.5, Math.max((value.income / monthlyMax) * 30, 0.8), 0.7, 0.7, "F");
-        doc.setFillColor(...redColor); doc.roundedRect(x + 4.5, 162 - (value.expense / monthlyMax) * 30, 3.5, Math.max((value.expense / monthlyMax) * 30, 0.8), 0.7, 0.7, "F");
-        doc.setFont("helvetica", "normal"); doc.setFontSize(5.5); doc.setTextColor(100, 116, 139);
-        doc.text(new Intl.DateTimeFormat("id-ID", { month: "short", timeZone: timezone }).format(new Date(`${key}-01T12:00:00Z`)), x + 4, 168, { align: "center" });
+    // Pemasukan dan pengeluaran bulan ini per hari atau minggu.
+    drawPanel(108, 122, granularity === "day" ? "BULAN INI / HARI" : "BULAN INI / MINGGU");
+    const monthlyMax = Math.max(...chartPeriods.flatMap((period) => [period.income, period.expense]), 1);
+    const barChartLeft = 115, barChartWidth = 69, barChartBaseline = 160;
+    doc.setDrawColor(203, 213, 225); doc.setLineWidth(0.4); doc.line(barChartLeft, barChartBaseline, barChartLeft + barChartWidth, barChartBaseline);
+    chartPeriods.forEach((period, index) => {
+        const groupWidth = barChartWidth / chartPeriodCount;
+        const barWidth = granularity === "day" ? 0.65 : 3.4;
+        const barGap = granularity === "day" ? 0.25 : 1;
+        const x = barChartLeft + index * groupWidth + (groupWidth - (barWidth * 2 + barGap)) / 2;
+        const incomeHeight = (period.income / monthlyMax) * 23;
+        const expenseHeight = (period.expense / monthlyMax) * 23;
+        doc.setFillColor(...greenColor); doc.roundedRect(x, barChartBaseline - incomeHeight, barWidth, Math.max(incomeHeight, 0.5), 0.25, 0.25, "F");
+        doc.setFillColor(...redColor); doc.roundedRect(x + barWidth + barGap, barChartBaseline - expenseHeight, barWidth, Math.max(expenseHeight, 0.5), 0.25, 0.25, "F");
+        const day = index + 1;
+        const showLabel = granularity === "week" || day === 1 || day % 5 === 0 || day === daysInMonth;
+        if (showLabel) {
+            doc.setFont("helvetica", "normal"); doc.setFontSize(4.5); doc.setTextColor(100, 116, 139);
+            doc.text(granularity === "week" ? `M${day}` : String(day), barChartLeft + index * groupWidth + groupWidth / 2, 166, { align: "center" });
+        }
     });
-    doc.setFontSize(5.5); doc.setTextColor(...greenColor); doc.text(`Masuk ${formatCurrency(summary.income)}`, 27, 173);
-    doc.setTextColor(...redColor); doc.text(`Keluar ${formatCurrency(summary.expense)}`, 62, 173);
+    doc.setFontSize(5); doc.setTextColor(...greenColor); doc.text("Masuk", 115, 176);
+    doc.setTextColor(...redColor); doc.text("Keluar", 149, 176);
 
-    // 2. Tren pemasukan dan pengeluaran bulan ini
-    drawPanel(108, 122, "TREN BULAN INI");
-    const nowParts = new Intl.DateTimeFormat("en-CA", { timeZone: timezone, year: "numeric", month: "2-digit" }).formatToParts(new Date());
-    const currentKey = `${nowParts.find((part) => part.type === "year")?.value}-${nowParts.find((part) => part.type === "month")?.value}`;
-    const trendEntries = [...transactions].filter((transaction) => {
-        const parts = new Intl.DateTimeFormat("en-CA", { timeZone: timezone, year: "numeric", month: "2-digit" }).formatToParts(new Date(transaction.date));
-        return `${parts.find((part) => part.type === "year")?.value}-${parts.find((part) => part.type === "month")?.value}` === currentKey;
-    }).sort((a, b) => new Date(a.date) - new Date(b.date));
-    let trendIncome = 0; let trendExpense = 0;
-    const trendPoints = trendEntries.map((transaction) => {
-        if (transaction.type === "income") trendIncome += Number(transaction.amount) || 0;
-        else trendExpense += Number(transaction.amount) || 0;
-        return [trendIncome, trendExpense];
+    // Akumulasi pemasukan, pengeluaran, dan arus kas bersih harian.
+    drawPanel(20, 122, "AKUMULASI HARIAN");
+    const trendValues = trendPoints.flatMap((point) => [point.income, point.expense, point.net]);
+    const trendMin = Math.min(...trendValues, 0);
+    const trendMax = Math.max(...trendValues, 1);
+    const trendRange = Math.max(trendMax - trendMin, 1);
+    const trendLeft = 27, trendRight = 95, trendTop = 139, trendBottom = 160;
+    const trendX = (index) => trendLeft + index * ((trendRight - trendLeft) / Math.max(trendPoints.length - 1, 1));
+    const trendY = (value) => trendBottom - ((value - trendMin) / trendRange) * (trendBottom - trendTop);
+    doc.setDrawColor(203, 213, 225); doc.setLineWidth(0.4); doc.line(trendLeft, trendY(0), trendRight, trendY(0));
+    const trendSeries = [
+        { key: "income", color: greenColor },
+        { key: "expense", color: redColor },
+        { key: "net", color: [37, 99, 235] },
+    ];
+    trendSeries.forEach(({ key, color }) => {
+        doc.setDrawColor(...color); doc.setLineWidth(0.8);
+        for (let index = 1; index < trendPoints.length; index++) {
+            doc.line(trendX(index - 1), trendY(trendPoints[index - 1][key]), trendX(index), trendY(trendPoints[index][key]));
+        }
     });
-    const trendMax = Math.max(...trendPoints.flatMap((point) => point), 1);
-    const trendX = (index) => 115 + index * (68 / Math.max(trendPoints.length - 1, 1));
-    const trendY = (value) => 162 - (value / trendMax) * 30;
-    doc.setDrawColor(203, 213, 225); doc.setLineWidth(0.4); doc.line(115, 162, 184, 162);
+    if (!trendEntries.length) { doc.setFont("helvetica", "normal"); doc.setFontSize(7); doc.setTextColor(100, 116, 139); doc.text("Belum ada transaksi", 61, 147, { align: "center" }); }
     trendPoints.forEach((point, index) => {
-        if (!index) return;
-        doc.setDrawColor(...greenColor); doc.setLineWidth(1); doc.line(trendX(index - 1), trendY(trendPoints[index - 1][0]), trendX(index), trendY(point[0]));
-        doc.setDrawColor(...redColor); doc.line(trendX(index - 1), trendY(trendPoints[index - 1][1]), trendX(index), trendY(point[1]));
+        const showLabel = point.day === 1 || point.day % 5 === 0 || point.day === currentDay;
+        if (showLabel) {
+            doc.setFont("helvetica", "normal"); doc.setFontSize(4.5); doc.setTextColor(100, 116, 139);
+            doc.text(String(point.day), trendX(index), 166, { align: "center" });
+        }
     });
-    if (!trendPoints.length) { doc.setFont("helvetica", "normal"); doc.setFontSize(7); doc.setTextColor(100, 116, 139); doc.text("Belum ada transaksi", 149, 147, { align: "center" }); }
-    doc.setFont("helvetica", "normal"); doc.setFontSize(5.5); doc.setTextColor(...greenColor); doc.text(`Masuk ${formatCurrency(trendIncome)}`, 115, 173);
-    doc.setTextColor(...redColor); doc.text(`Keluar ${formatCurrency(trendExpense)}`, 151, 173);
+    doc.setFont("helvetica", "normal"); doc.setFontSize(4.5);
+    doc.setTextColor(...greenColor); doc.text("Masuk", 27, 176);
+    doc.setTextColor(...redColor); doc.text("Keluar", 51, 176);
+    doc.setTextColor(37, 99, 235); doc.text("Bersih", 76, 176);
 
-    // 3. Rasio pemasukan dan pengeluaran
-    drawPanel(20, 194, "RASIO ARUS KAS");
-    const totalFlow = Number(summary.income || 0) + Number(summary.expense || 0);
-    const incomeRatio = totalFlow ? Number(summary.income || 0) / totalFlow : 0;
+    // 3. Rasio pemasukan dan pengeluaran bulan ini.
+    drawPanel(20, 194, "RASIO BULAN INI");
+    const totalFlow = currentMonthTotals.income + currentMonthTotals.expense;
+    const incomeRatio = totalFlow ? currentMonthTotals.income / totalFlow : 0;
     drawDonut(61, 222, [incomeRatio, 1 - incomeRatio], [greenColor, redColor]);
     doc.setFont("helvetica", "bold"); doc.setFontSize(9); doc.setTextColor(...darkGray); doc.text(`${Math.round(incomeRatio * 100)}%`, 61, 224, { align: "center" });
-    doc.setFont("helvetica", "normal"); doc.setFontSize(5.5); doc.setTextColor(...greenColor); doc.text(`Pemasukan ${formatCurrency(summary.income)}`, 27, 243);
-    doc.setTextColor(...redColor); doc.text(`Pengeluaran ${formatCurrency(summary.expense)}`, 27, 250);
+    doc.setFont("helvetica", "normal"); doc.setFontSize(5.5); doc.setTextColor(...greenColor); doc.text(`Pemasukan ${formatCurrency(currentMonthTotals.income)}`, 27, 243);
+    doc.setTextColor(...redColor); doc.text(`Pengeluaran ${formatCurrency(currentMonthTotals.expense)}`, 27, 250);
 
     // 4. Pengeluaran berdasarkan kategori bulan ini
     drawPanel(108, 194, "PENGELUARAN KATEGORI");
