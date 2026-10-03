@@ -103,7 +103,11 @@ const broadcastAdminUpdate = async () => {
 
 app.use(cors());
 app.use(express.json());
-app.use(morgan("dev"));
+const isProduction = process.env.NODE_ENV === "production";
+morgan.token("request-path", (req) => req.path);
+app.use(morgan(isProduction ? ":method :request-path :status :response-time ms" : "dev", {
+  skip: (req, res) => isProduction && req.path === "/health" && res.statusCode < 400,
+}));
 // Catatan: /uploads static route dihapus karena sekarang menggunakan Cloudinary
 
 const asyncHandler = (handler) => (req, res, next) =>
