@@ -803,7 +803,7 @@ if (clientBuildExists) {
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>PravaCash</title>
+    <title>Prava Cash</title>
     <style>
       body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #f4f7f5; color: #18231d; font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
       main { max-width: 440px; margin: 24px; padding: 36px; border: 1px solid #dce6df; border-radius: 12px; background: #fff; text-align: center; }
@@ -815,9 +815,9 @@ if (clientBuildExists) {
   </head>
   <body>
     <main>
-      <h1>PravaCash</h1>
-      <p>Untuk mengakses aplikasi web, silakan buka PravaCash melalui tautan berikut.</p>
-      <a href="https://cash.pravapos.com">Buka PravaCash</a>
+      <h1>Prava Cash</h1>
+      <p>Untuk mengakses aplikasi web, silakan buka Prava Cash melalui tautan berikut.</p>
+      <a href="https://cash.pravapos.com">Buka Prava Cash</a>
       <p style="margin: 20px 0 0; font-size: 14px">Alamat ini digunakan untuk layanan backend.</p>
     </main>
   </body>
