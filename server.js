@@ -798,9 +798,30 @@ if (clientBuildExists) {
   });
 } else {
   app.get("/", (_req, res) => {
-    res.send(
-      "Frontend build belum tersedia. Jalankan `npm run client` untuk mode dev atau `npm run client:build` untuk produksi."
-    );
+    res.type("html").send(`<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>PravaCash</title>
+    <style>
+      body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #f4f7f5; color: #18231d; font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+      main { max-width: 440px; margin: 24px; padding: 36px; border: 1px solid #dce6df; border-radius: 12px; background: #fff; text-align: center; }
+      h1 { margin: 0 0 12px; font-size: 28px; }
+      p { margin: 0 0 20px; color: #526158; }
+      a { display: inline-block; padding: 11px 18px; border-radius: 7px; background: #087f5b; color: #fff; font-weight: 600; text-decoration: none; }
+      a:hover { background: #066b4d; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>PravaCash</h1>
+      <p>Untuk mengakses aplikasi web, silakan buka PravaCash melalui tautan berikut.</p>
+      <a href="https://cash.pravapos.com">Buka PravaCash</a>
+      <p style="margin: 20px 0 0; font-size: 14px">Alamat ini digunakan untuk layanan backend.</p>
+    </main>
+  </body>
+</html>`);
   });
 }
 
