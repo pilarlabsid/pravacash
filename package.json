@@ -15,12 +15,12 @@
   "keywords": [
     "cashflow",
     "express",
-    "sqlite",
     "dashboard"
   ],
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "@prisma/client": "^5.22.0",
     "bcrypt": "^6.0.0",
     "cloudinary": "^2.11.0",
     "cors": "^2.8.5",
@@ -31,10 +31,8 @@
     "morgan": "^1.10.0",
     "multer": "^2.4.0",
     "pg": "^8.16.3",
-    "socket.io": "^4.8.1",
-    "sql.js": "^1.11.0",
-    "@prisma/client": "^5.22.0",
-    "prisma": "^5.22.0"
+    "prisma": "^5.22.0",
+    "socket.io": "^4.8.1"
   },
   "devDependencies": {
     "nodemon": "^3.0.2"

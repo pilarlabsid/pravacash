@@ -182,7 +182,7 @@ Setelah login, buka Settings, aktifkan proteksi PIN, masukkan PIN 4 digit, lalu 
 
 ## 🛠️ Teknologi yang Digunakan
 
-- **Backend**: Node.js, Express, Socket.IO, SQLite (sql.js)
+- **Backend**: Node.js, Express, Socket.IO, PostgreSQL via Prisma
 - **Frontend**: React, Vite, Tailwind CSS, Socket.IO Client
 - **Deployment**: Netlify (frontend), Railway (backend)
 
