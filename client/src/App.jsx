@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useLayoutEffect, useState } from "react";
 import { useAppLogic } from "./hooks/useAppLogic";
 
 // Components
@@ -11,6 +11,24 @@ import { AppModals } from "./components/modals/AppModals";
 
 export default function App() {
   const [chartGranularity, setChartGranularity] = useState("week");
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    try {
+      const savedTheme = localStorage.getItem("prava-cash-theme");
+      return savedTheme ? savedTheme === "dark" : true;
+    } catch {
+      return true;
+    }
+  });
+
+  useLayoutEffect(() => {
+    document.documentElement.classList.toggle("dark", isDarkMode);
+    try {
+      localStorage.setItem("prava-cash-theme", isDarkMode ? "dark" : "light");
+    } catch {
+      // Theme still applies for this session when storage is unavailable.
+    }
+  }, [isDarkMode]);
+
   const {
     toast, currentTime, isMenuOpen, setIsMenuOpen, isAdminPage, setIsAdminPage, modalRef,
     user, isAuthenticated, authLoading, isLoginModalOpen, setIsLoginModalOpen,
@@ -45,6 +63,7 @@ export default function App() {
     return (
       <AuthModals
         toast={toast}
+        isDarkMode={isDarkMode} onToggleDarkMode={() => setIsDarkMode((current) => !current)}
         isLoginModalOpen={isLoginModalOpen} setIsLoginModalOpen={setIsLoginModalOpen}
         isRegisterModalOpen={isRegisterModalOpen} setIsRegisterModalOpen={setIsRegisterModalOpen}
         loginForm={loginForm} setLoginForm={setLoginForm}
@@ -67,6 +86,7 @@ export default function App() {
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-5 px-3 pt-4 sm:gap-8 sm:px-6 sm:pt-8 lg:px-8">
         <Header
           user={user} currentTime={currentTime} isAdminPage={isAdminPage}
+          isDarkMode={isDarkMode} onToggleDarkMode={() => setIsDarkMode((current) => !current)}
           setIsAdminPage={setIsAdminPage} isMenuOpen={isMenuOpen} setIsMenuOpen={setIsMenuOpen}
           setIsSettingsOpen={setIsSettingsOpen} handleLogout={handleLogout}
           setIsConfirmOpen={txHook.setIsConfirmOpen}

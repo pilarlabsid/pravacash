@@ -42,27 +42,29 @@ const BrandPanel = () => (
         </div>
       </div>
 
-      {/* Headline */}
-      <div className="auth-headline">
-        <h1 className="auth-headline-title">Kelola Keuangan<br />Lebih Cerdas</h1>
-        <p className="auth-headline-sub">
-          Catat pemasukan & pengeluaran, pantau saldo, dan analisis cashflow bisnis Anda secara realtime.
-        </p>
-      </div>
+      <div className="auth-brand-message">
+        {/* Headline */}
+        <div className="auth-headline">
+          <h1 className="auth-headline-title">Kelola Keuangan<br />Lebih Cerdas</h1>
+          <p className="auth-headline-sub">
+            Catat pemasukan & pengeluaran, pantau saldo, dan analisis cashflow bisnis Anda secara realtime.
+          </p>
+        </div>
 
-      {/* Features — minimal, no emojis */}
-      <div className="auth-features">
-        {[
-          { label: "Laporan visual interaktif" },
-          { label: "Keamanan dengan autentikasi PIN" },
-          { label: "Sinkronisasi data realtime" },
-          { label: "Ekspor laporan ke Excel & PDF" },
-        ].map((f) => (
-          <div key={f.label} className="auth-feature-item">
-            <span className="auth-feature-dot" />
-            <span className="auth-feature-label">{f.label}</span>
-          </div>
-        ))}
+        {/* Features — minimal, no emojis */}
+        <div className="auth-features">
+          {[
+            { label: "Laporan visual interaktif" },
+            { label: "Keamanan dengan autentikasi PIN" },
+            { label: "Sinkronisasi data realtime" },
+            { label: "Ekspor laporan ke Excel & PDF" },
+          ].map((f) => (
+            <div key={f.label} className="auth-feature-item">
+              <span className="auth-feature-dot" />
+              <span className="auth-feature-label">{f.label}</span>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
 
@@ -70,7 +72,7 @@ const BrandPanel = () => (
     <div className="auth-brand-footer">
       <p>© 2026 Prava Cash · Semua hak dilindungi</p>
       <p style={{ marginTop: '4px' }}>
-        Development by <a href="https://pilarlabs.id" target="_blank" rel="noopener noreferrer" style={{ color: '#a7f3d0', textDecoration: 'none', fontWeight: 600 }}>Pilar Labs</a>
+        Developed by <a href="https://pilarlabs.id" target="_blank" rel="noopener noreferrer" style={{ color: '#a7f3d0', textDecoration: 'none', fontWeight: 600 }}>Pilar Labs</a>
       </p>
     </div>
   </div>
@@ -172,7 +174,7 @@ export const RegisterModal = ({
 
 // ─── Auth Page ──────────────────────────────────────────────────────────────
 export const AuthModals = ({
-  toast, isLoginModalOpen, setIsLoginModalOpen,
+  toast, isDarkMode, onToggleDarkMode, isLoginModalOpen, setIsLoginModalOpen,
   isRegisterModalOpen, setIsRegisterModalOpen,
   loginForm, setLoginForm, registerForm, setRegisterForm,
   authError, setAuthError, authFormLoading,
@@ -180,6 +182,25 @@ export const AuthModals = ({
 }) => {
   return (
     <div className="auth-page">
+      <button
+        type="button"
+        onClick={onToggleDarkMode}
+        aria-label={isDarkMode ? "Aktifkan mode terang" : "Aktifkan mode gelap"}
+        aria-pressed={isDarkMode}
+        title={isDarkMode ? "Mode terang" : "Mode gelap"}
+        className="auth-theme-toggle"
+      >
+        {isDarkMode ? (
+          <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="4" />
+            <path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42" />
+          </svg>
+        ) : (
+          <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M20.9 13A9 9 0 0 1 11 3.1 9 9 0 1 0 20.9 13Z" />
+          </svg>
+        )}
+      </button>
       {toast && (
         <div className={`auth-toast ${toast.type === "error" ? "auth-toast-error" : "auth-toast-success"}`}>
           {toast.message}
@@ -214,6 +235,10 @@ export const AuthModals = ({
             </div>
           </div>
         )}
+        <div className="auth-mobile-footer">
+          <p>© 2026 Prava Cash · Semua hak dilindungi</p>
+          <p>Developed by <a href="https://pilarlabs.id" target="_blank" rel="noopener noreferrer">Pilar Labs</a></p>
+        </div>
       </div>
     </div>
   );

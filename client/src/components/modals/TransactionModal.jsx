@@ -19,7 +19,7 @@ export const TransactionModal = ({
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-slate-900/60 p-0 sm:p-4 backdrop-blur-sm transition-opacity">
       <div
         ref={modalRef}
-        className="w-full max-w-lg max-h-[92vh] sm:max-h-[88vh] overflow-y-auto rounded-t-[2rem] sm:rounded-3xl bg-white p-5 sm:p-8 shadow-2xl transition-all"
+        className={`w-full max-w-lg max-h-[92vh] sm:max-h-[88vh] overflow-y-auto rounded-t-[2rem] sm:rounded-3xl bg-white shadow-2xl transition-all ${isPinStep ? "p-4 sm:p-5" : "p-5 sm:p-8"}`}
       >
         {/* Mobile handle indicator */}
         <div className="w-10 h-1 bg-slate-200 rounded-full mx-auto mb-3 sm:hidden" />
@@ -205,7 +205,7 @@ export const TransactionModal = ({
               )}
             </>
           ) : settings.pinEnabled ? (
-            <div className="space-y-4 py-2">
+            <div className="space-y-3 py-1">
               <p className="text-center text-sm font-medium text-slate-600">
                 {pinDescriptions[pinMode ?? "create"]}
               </p>
@@ -218,7 +218,7 @@ export const TransactionModal = ({
                   inputMode="numeric"
                   pattern="\d{4}"
                   maxLength={4}
-                  className={`${inputClasses} text-center text-2xl font-bold tracking-[0.6em] py-3.5`}
+                  className={`${inputClasses} !py-2.5 text-center text-xl font-bold tracking-[0.6em]`}
                   placeholder="••••"
                   autoFocus
                 />
@@ -230,7 +230,7 @@ export const TransactionModal = ({
               )}
             </div>
           ) : (
-            <div className="space-y-3 py-2">
+            <div className="space-y-2 py-1">
               <p className="text-center text-sm font-medium text-slate-600">
                 Konfirmasi untuk melanjutkan aksi ini.
               </p>
@@ -241,7 +241,7 @@ export const TransactionModal = ({
             <button
               type="button"
               onClick={isPinStep ? handlePinBack : closeModal}
-              className="inline-flex w-full items-center justify-center rounded-2xl border border-slate-200 px-4 py-3 text-sm font-bold text-slate-600 transition hover:bg-slate-50 active:scale-98 sm:w-auto sm:flex-1"
+              className="inline-flex w-full items-center justify-center rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-bold text-slate-600 transition hover:bg-slate-50 active:scale-98 sm:w-auto sm:flex-1"
             >
               {isPinStep ? "Kembali" : "Batalkan"}
             </button>
@@ -250,7 +250,7 @@ export const TransactionModal = ({
                 type="button"
                 onClick={confirmResetWithPin}
                 disabled={resetting}
-                className="inline-flex w-full items-center justify-center rounded-2xl bg-rose-600 px-4 py-3.5 text-sm font-bold text-white shadow-soft transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:bg-rose-300 active:scale-98 sm:w-auto sm:flex-1"
+                className="inline-flex w-full items-center justify-center rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-bold text-white shadow-soft transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:bg-rose-300 active:scale-98 sm:w-auto sm:flex-1"
               >
                 {resetting ? "Menghapus..." : settings.pinEnabled ? "Konfirmasi PIN" : "Konfirmasi"}
               </button>
@@ -259,7 +259,7 @@ export const TransactionModal = ({
                 type="button"
                 onClick={confirmDeleteWithPin}
                 loading={deleting}
-                className="inline-flex w-full items-center justify-center rounded-2xl bg-rose-600 px-4 py-3.5 text-sm font-bold text-white shadow-soft transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:bg-rose-300 active:scale-98 sm:w-auto sm:flex-1"
+                className="inline-flex w-full items-center justify-center rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-bold text-white shadow-soft transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:bg-rose-300 active:scale-98 sm:w-auto sm:flex-1"
               >
                 {settings.pinEnabled ? "Konfirmasi PIN" : "Konfirmasi"}
               </LoadingButton>
@@ -268,7 +268,7 @@ export const TransactionModal = ({
                 type="button"
                 onClick={confirmExportWithPin}
                 loading={exporting}
-                className="inline-flex w-full items-center justify-center rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 px-4 py-3.5 text-sm font-bold text-white shadow-soft transition hover:from-emerald-700 hover:to-teal-700 disabled:cursor-not-allowed disabled:bg-emerald-300 active:scale-98 sm:w-auto sm:flex-1"
+                className="inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-4 py-2.5 text-sm font-bold text-white shadow-soft transition hover:from-emerald-700 hover:to-teal-700 disabled:cursor-not-allowed disabled:bg-emerald-300 active:scale-98 sm:w-auto sm:flex-1"
               >
                 {settings.pinEnabled ? "Konfirmasi PIN" : "Konfirmasi"}
               </LoadingButton>
@@ -276,7 +276,7 @@ export const TransactionModal = ({
               <LoadingButton
                 type="submit"
                 loading={submitting}
-                className="inline-flex w-full items-center justify-center rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 px-4 py-3.5 text-sm font-bold text-white shadow-lg shadow-emerald-600/20 transition hover:from-emerald-700 hover:to-teal-700 disabled:cursor-not-allowed disabled:opacity-60 active:scale-98 sm:w-auto sm:flex-1"
+                className="inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-4 py-2.5 text-sm font-bold text-white shadow-lg shadow-emerald-600/20 transition hover:from-emerald-700 hover:to-teal-700 disabled:cursor-not-allowed disabled:opacity-60 active:scale-98 sm:w-auto sm:flex-1"
               >
                 {isPinStep
                   ? settings.pinEnabled

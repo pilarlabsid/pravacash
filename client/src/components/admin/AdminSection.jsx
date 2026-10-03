@@ -107,7 +107,7 @@ export const AdminSection = ({
     <>
       {/* Admin Page - Auto show if user is admin */}
       {String(user?.role || '').toLowerCase() === 'admin' && (
-        <div className="space-y-5">
+        <div className="admin-page space-y-5">
           {/* Admin Tabs */}
           <div className="flex gap-1.5 rounded-2xl bg-white p-1.5 shadow-soft border border-slate-100">
             <button
@@ -160,22 +160,22 @@ export const AdminSection = ({
                       <StatCard
                         label="Total Users"
                         value={adminStats.totalUsers}
-                        className="from-purple-500 via-purple-400 to-purple-500 text-white"
+                        className="admin-metric-total from-emerald-700 via-emerald-600 to-green-600 text-white"
                       />
                       <StatCard
                         label="Active Users (7d)"
                         value={adminStats.activeUsers || 0}
-                        className="from-emerald-500 via-emerald-400 to-emerald-500 text-white"
+                        className="admin-metric-active from-green-600 via-emerald-500 to-emerald-400 text-white"
                       />
                       <StatCard
                         label="Inactive Users (30d)"
                         value={adminStats.inactiveUsers || 0}
-                        className="from-amber-500 via-amber-400 to-amber-500 text-white"
+                        className="admin-metric-inactive from-emerald-800 via-emerald-700 to-green-700 text-white"
                       />
                       <StatCard
                         label="Total Transactions"
                         value={adminStats.totalTransactions}
-                        className="from-teal-600 via-teal-500 to-emerald-600 text-white"
+                        className="admin-metric-transactions from-teal-700 via-teal-600 to-emerald-600 text-white"
                       />
                     </div>
 
@@ -428,7 +428,7 @@ export const AdminSection = ({
                     <button
                       id="btn-add-user"
                       onClick={onAddUserClick}
-                      className="flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-xs font-semibold text-white shadow transition hover:bg-indigo-700"
+                      className="flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-semibold text-white shadow transition hover:bg-emerald-700"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                         <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
@@ -472,7 +472,7 @@ export const AdminSection = ({
                                 <td className="px-4 py-3 text-sm font-semibold text-slate-900">{u.name}</td>
                                 <td className="px-4 py-3 text-sm text-slate-600">{u.email}</td>
                                 <td className="px-4 py-3">
-                                  <span className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${u.role === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-slate-100 text-slate-700'}`}>
+                                  <span className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${u.role === 'admin' ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-700'}`}>
                                     {u.role || 'user'}
                                   </span>
                                 </td>
@@ -485,7 +485,7 @@ export const AdminSection = ({
                                 </td>
                                 <td className="px-4 py-3">
                                   <div className="flex justify-center gap-2">
-                                    <button onClick={() => onEditUserClick(u)} className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-600 transition hover:bg-indigo-100">Edit</button>
+                                    <button onClick={() => onEditUserClick(u)} className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-100">Edit</button>
                                     {u.id !== user.id && (
                                       <button onClick={() => onDeleteUserClick(u.id)} className="rounded-full bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-600 transition hover:bg-rose-100">Delete</button>
                                     )}
@@ -558,7 +558,7 @@ export const AdminSection = ({
                               <span>Saldo: <span className={`font-semibold ${balance >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>{formatCurrency(balance)}</span></span>
                             </div>
                           </div>
-                          <button type="button" onClick={() => setSelectedTransactionUser(userGroup)} className="shrink-0 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-700">
+                          <button type="button" onClick={() => setSelectedTransactionUser(userGroup)} className="shrink-0 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700">
                             Detail
                           </button>
                         </div>

@@ -8,17 +8,17 @@ export const ExportPinModal = ({ isOpen, pin, pinError, exporting, setPin, setPi
 
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-900/70 px-4">
-      <div className="w-full max-w-md rounded-3xl bg-white p-6 text-center shadow-2xl sm:p-8">
-        <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+      <div className="w-full max-w-sm rounded-2xl bg-white p-5 text-center shadow-2xl sm:p-6">
+        <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
           Keamanan PIN
         </p>
-        <h2 className="mt-2 text-2xl font-semibold text-slate-900">
+        <h2 className="mt-1 text-xl font-bold text-slate-900">
           Konfirmasi PIN
         </h2>
-        <p className="mt-3 text-sm text-slate-500">
+        <p className="mt-2 text-sm leading-relaxed text-slate-500">
           Masukkan PIN 4-digit untuk mengunduh transaksi.
         </p>
-        <div className="mt-4 space-y-3 text-left">
+        <div className="mt-3 space-y-2 text-left">
           <Field label="PIN">
             <input
               type="password"
@@ -28,7 +28,7 @@ export const ExportPinModal = ({ isOpen, pin, pinError, exporting, setPin, setPi
               inputMode="numeric"
               pattern="\d{4}"
               maxLength={4}
-              className={`${inputClasses} text-center tracking-[0.5em]`}
+              className={`${inputClasses} !py-2.5 text-center tracking-[0.5em]`}
               placeholder="••••"
             />
           </Field>
@@ -38,18 +38,18 @@ export const ExportPinModal = ({ isOpen, pin, pinError, exporting, setPin, setPi
             </p>
           )}
         </div>
-        <div className="mt-6 grid gap-3 sm:grid-cols-2">
+        <div className="mt-4 grid gap-2 sm:grid-cols-2">
           <button
             type="button"
             onClick={closeExportPinModal}
-            className="inline-flex items-center justify-center rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
+            className="inline-flex items-center justify-center rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
           >
             Batalkan
           </button>
           <button
             type="button"
             onClick={confirmExportWithPin}
-            className="inline-flex items-center justify-center rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white shadow-soft transition hover:bg-emerald-700"
+            className="inline-flex items-center justify-center rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-soft transition hover:bg-emerald-700"
           >
             Konfirmasi PIN
           </button>
@@ -175,23 +175,23 @@ export const ImportPinModal = ({ isOpen, pin, pinError, importing, importPreview
 
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-900/70 px-4">
-      <div className="relative w-full max-w-md rounded-3xl bg-white p-6 text-center shadow-2xl sm:p-8">
+      <div className="relative w-full max-w-sm rounded-2xl bg-white p-5 text-center shadow-2xl sm:p-6">
         {importing && (
           <div className="absolute inset-0 z-50 flex flex-col items-center justify-center rounded-3xl bg-white/80 backdrop-blur-sm">
              <div className="text-2xl font-semibold text-indigo-600">Mengimpor transaksi...</div>
           </div>
         )}
-        <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+        <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
           Keamanan PIN
         </p>
-        <h2 className="mt-2 text-2xl font-semibold text-slate-900">
+        <h2 className="mt-1 text-xl font-bold text-slate-900">
           Konfirmasi PIN
         </h2>
-        <p className="mt-3 text-sm text-slate-500">
+        <p className="mt-2 text-sm leading-relaxed text-slate-500">
           Masukkan PIN 4-digit untuk mengimpor {importPreview.length} transaksi dari Excel.
         </p>
         {importPreview.length > 0 && (
-          <div className="mt-4 max-h-40 overflow-y-auto rounded-xl bg-slate-50 p-3 text-left">
+          <div className="mt-3 max-h-32 overflow-y-auto rounded-xl bg-slate-50 p-2.5 text-left">
             <p className="mb-2 text-xs font-semibold text-slate-500">
               Preview ({importPreview.length} transaksi):
             </p>
@@ -209,7 +209,7 @@ export const ImportPinModal = ({ isOpen, pin, pinError, importing, importPreview
             </div>
           </div>
         )}
-        <div className="mt-4 space-y-3 text-left">
+        <div className="mt-3 space-y-2 text-left">
           <Field label="PIN">
             <input
               type="password"
@@ -219,7 +219,7 @@ export const ImportPinModal = ({ isOpen, pin, pinError, importing, importPreview
               inputMode="numeric"
               pattern="\d{4}"
               maxLength={4}
-              className={`${inputClasses} text-center tracking-[0.5em]`}
+              className={`${inputClasses} !py-2.5 text-center tracking-[0.5em]`}
               placeholder="••••"
               autoFocus
             />
@@ -230,12 +230,12 @@ export const ImportPinModal = ({ isOpen, pin, pinError, importing, importPreview
             </p>
           )}
         </div>
-        <div className="mt-6 grid gap-3 sm:grid-cols-2">
+        <div className="mt-4 grid gap-2 sm:grid-cols-2">
           <button
             type="button"
             onClick={closeImportPinModal}
             disabled={importing}
-            className="inline-flex items-center justify-center rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:opacity-50"
+            className="inline-flex items-center justify-center rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:opacity-50"
           >
             Batalkan
           </button>
@@ -243,7 +243,7 @@ export const ImportPinModal = ({ isOpen, pin, pinError, importing, importPreview
             type="button"
             onClick={confirmImportWithPin}
             disabled={importing}
-            className="inline-flex items-center justify-center rounded-2xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-soft transition hover:bg-indigo-700 disabled:opacity-50"
+            className="inline-flex items-center justify-center rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-soft transition hover:bg-indigo-700 disabled:opacity-50"
           >
             {importing ? "Mengimpor..." : "Konfirmasi PIN"}
           </button>

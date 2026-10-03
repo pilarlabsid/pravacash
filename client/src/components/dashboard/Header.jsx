@@ -4,7 +4,8 @@ import { getBrowserTimezone, getTimezoneLabel } from '../../lib/format';
 export const Header = ({
   user, currentTime, isAdminPage, setIsAdminPage,
   isMenuOpen, setIsMenuOpen, setIsSettingsOpen, handleLogout,
-  setIsConfirmOpen, handleImportExcel, handleDownloadExcel, handleDownloadPdf, openModal
+  setIsConfirmOpen, handleImportExcel, handleDownloadExcel, handleDownloadPdf, openModal,
+  isDarkMode, onToggleDarkMode
 }) => {
   const isAdmin = String(user?.role || '').toLowerCase() === 'admin';
   const browserTimezone = getBrowserTimezone();
@@ -37,30 +38,51 @@ export const Header = ({
           </div>
         </div>
 
-        <div className="text-right shrink-0">
-          <p className="text-[11px] sm:text-xs font-medium text-emerald-200/80">
-            {currentTime.toLocaleDateString("id-ID", {
-              weekday: "short",
-              day: "numeric",
-              month: "short",
-              year: "numeric",
-              timeZone: browserTimezone,
-            })}
-          </p>
-          <div className="flex items-center justify-end gap-1.5">
-            <p className="text-base sm:text-lg font-bold tracking-tight text-white">
-              {currentTime.toLocaleTimeString("id-ID", {
-                hour: "2-digit",
-                minute: "2-digit",
-                second: "2-digit",
-                hour12: false,
+        <div className="flex shrink-0 items-center gap-2">
+          <div className="text-right">
+            <p className="text-[11px] sm:text-xs font-medium text-emerald-200/80">
+              {currentTime.toLocaleDateString("id-ID", {
+                weekday: "short",
+                day: "numeric",
+                month: "short",
+                year: "numeric",
                 timeZone: browserTimezone,
               })}
             </p>
-            <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-emerald-400/20 text-emerald-200 border border-emerald-300/30">
-              {tzLabel}
-            </span>
+            <div className="flex items-center justify-end gap-1.5">
+              <p className="text-base sm:text-lg font-bold tracking-tight text-white">
+                {currentTime.toLocaleTimeString("id-ID", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                  second: "2-digit",
+                  hour12: false,
+                  timeZone: browserTimezone,
+                })}
+              </p>
+              <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-emerald-400/20 text-emerald-200 border border-emerald-300/30">
+                {tzLabel}
+              </span>
+            </div>
           </div>
+          <button
+            type="button"
+            onClick={onToggleDarkMode}
+            aria-label={isDarkMode ? "Aktifkan mode terang" : "Aktifkan mode gelap"}
+            aria-pressed={isDarkMode}
+            title={isDarkMode ? "Mode terang" : "Mode gelap"}
+            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/20 bg-white/10 text-emerald-50 transition hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-200"
+          >
+            {isDarkMode ? (
+              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="4" />
+                <path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42" />
+              </svg>
+            ) : (
+              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M20.9 13A9 9 0 0 1 11 3.1 9 9 0 1 0 20.9 13Z" />
+              </svg>
+            )}
+          </button>
         </div>
       </div>
 
