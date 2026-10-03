@@ -25,7 +25,7 @@ healthcheckPath = "/health"
 ## Railway: Backend
 
 1. Buat project/service Railway dari repository ini. Set **Root Directory** ke root repository (`/`) atau biarkan kosong.
-2. Pastikan Railway menggunakan `railway.toml` pada root repository. Build command harus backend-only seperti contoh di atas; start command `npm start`.
+2. Pastikan Railway menggunakan `railway.toml` pada root repository. Build command harus backend-only seperti contoh di atas; start command `npm start`. `build.watchPatterns` di file tersebut membatasi deploy Railway ke perubahan file backend (`server.js`, `create-admin.js`, `src/`, `prisma/`, `public/`, `data/`, manifest npm, dan `railway.toml`), sehingga perubahan khusus di `client/` tidak memicu deploy backend.
 3. Sediakan PostgreSQL. Jika database dibuat di project Railway yang sama, hubungkan variable `DATABASE_URL` service backend ke connection string PostgreSQL. Jika memakai provider lain, gunakan connection string PostgreSQL provider tersebut.
 4. Atur variables berikut di service backend:
 

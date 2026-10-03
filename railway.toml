@@ -1,6 +1,17 @@
 [build]
 builder = "NIXPACKS"
 buildCommand = "npm install && npx prisma generate && npx prisma db push"
+watchPatterns = [
+	"server.js",
+	"create-admin.js",
+	"src/**",
+	"prisma/**",
+	"public/**",
+	"data/**",
+	"package.json",
+	"package-lock.json",
+	"railway.toml",
+]
 
 [deploy]
 startCommand = "npm start"
