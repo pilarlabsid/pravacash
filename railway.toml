@@ -1,6 +1,7 @@
 [build]
 builder = "NIXPACKS"
-buildCommand = "npm install && cd client && npm install --include=dev && npm run build && cd .. && npx prisma generate && npx prisma db push"
+buildCommand = "npm install && npx prisma generate && npx prisma db push"
 
 [deploy]
 startCommand = "npm start"
+healthcheckPath = "/health"

@@ -41,7 +41,7 @@ healthcheckPath = "/health"
 
 Tiga variable Cloudinary diperlukan untuk upload gambar. `PORT` tidak perlu diisi secara manual karena Railway menyediakan port untuk service.
 
-5. Deploy, lalu aktifkan/generate domain publik untuk backend. Catat URL HTTPS-nya, misalnya `https://nama-service.up.railway.app`.
+5. Backend menggunakan domain publik `https://pravacash.up.railway.app`.
 6. Atur health check service ke `/health` jika pengaturan health check tersedia.
 7. Pastikan log deployment menampilkan koneksi PostgreSQL berhasil dan service berjalan.
 
@@ -63,14 +63,14 @@ Tiga variable Cloudinary diperlukan untuk upload gambar. `PORT` tidak perlu diis
 
 | Variable | Nilai |
 | --- | --- |
-| `VITE_API_URL` | URL publik Railway, contohnya `https://nama-service.up.railway.app` |
-| `VITE_PIN_CODE` | Opsional; PIN 4 digit. Default aplikasi: `6745` |
+| `VITE_API_URL` | `https://pravacash.up.railway.app` |
 
 `VITE_API_URL` harus memakai URL HTTPS backend tanpa slash di akhir. Variable `VITE_*` dimasukkan ke dalam bundle frontend saat build, jadi trigger ulang deployment Netlify setelah mengubahnya.
+PIN tidak perlu diatur sebagai environment variable Netlify. Setiap pengguna mengatur PIN sendiri melalui Settings setelah login. `VITE_PIN_CODE` saat ini tidak digunakan oleh alur aplikasi.
 
 ## Verifikasi
 
-1. Buka `https://nama-service.up.railway.app/health`. Respons yang diharapkan berupa JSON dengan `ok: true`.
+1. Buka `https://pravacash.up.railway.app/health`. Respons yang diharapkan berupa JSON dengan `ok: true`.
 2. Buka URL site Netlify dan coba login, memuat transaksi, lalu periksa console/network browser jika request API gagal.
 3. Pastikan request API dan koneksi Socket.IO menuju domain Railway, bukan domain Netlify.
 

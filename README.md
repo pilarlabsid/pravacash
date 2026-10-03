@@ -148,8 +148,7 @@ Panduan khusus untuk deploy backend-only di Railway dan frontend di Netlify ters
 
 | Variable      | Deskripsi                          | Contoh                                    | Wajib |
 | ------------- | ---------------------------------- | ----------------------------------------- | ----- |
-| `VITE_API_URL` | URL backend Railway (tanpa trailing slash) | `https://cashflow-backend.up.railway.app` | ✅ Ya |
-| `VITE_PIN_CODE` | PIN 4-digit untuk proteksi transaksi | `6745` | ❌ Opsional (default: `6745`) |
+| `VITE_API_URL` | URL backend Railway (tanpa trailing slash) | `https://pravacash.up.railway.app` | ✅ Ya |
 
 ### Backend (Railway/Server)
 
@@ -167,21 +166,12 @@ Panduan khusus untuk deploy backend-only di Railway dan frontend di Netlify ters
 ## 🔐 Keamanan
 
 - **PIN Protection**: Semua operasi penting (create, update, delete, export) memerlukan PIN 4-digit
-- **Default PIN**: `6745` (dapat diubah melalui environment variable `VITE_PIN_CODE` di Netlify)
+- **PIN**: Setiap pengguna dapat mengatur PIN 4 digit melalui Settings. PIN disimpan dan diverifikasi oleh backend.
 - **CORS**: Backend dikonfigurasi untuk menerima request dari semua origin (untuk production, pertimbangkan membatasi ke domain Netlify)
 
-### Mengubah PIN
+### Mengatur PIN
 
-Untuk mengubah PIN di production:
-
-1. Buka Netlify Dashboard → Site settings → Environment variables
-2. Tambahkan variable baru:
-   - **Key**: `VITE_PIN_CODE`
-   - **Value**: PIN 4-digit Anda (contoh: `1234`)
-   - **Scope**: All scopes
-3. Rebuild dengan "Clear cache and deploy site"
-
-**Catatan**: Jika `VITE_PIN_CODE` tidak di-set, aplikasi akan menggunakan PIN default `6745`.
+Setelah login, buka Settings, aktifkan proteksi PIN, masukkan PIN 4 digit, lalu simpan pengaturan. Untuk mengubah PIN, masukkan PIN baru pada bagian yang sama. PIN bukan environment variable Netlify; `VITE_PIN_CODE` saat ini tidak digunakan oleh alur aplikasi.
 
 ## 📝 Catatan Penting
 
