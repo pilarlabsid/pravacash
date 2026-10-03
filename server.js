@@ -788,6 +788,40 @@ app.post(
 const clientDir = path.join(__dirname, "client", "dist");
 const clientBuildExists = fs.existsSync(clientDir);
 
+app.get("/", (_req, res) => {
+  res.status(404).type("html").send(`<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>404 Not Found</title>
+    <style>
+      * { box-sizing: border-box; }
+      body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 24px; background: #f7f8f6; color: #202721; font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+      main { width: min(100%, 560px); padding: 24px 0; }
+      .brand { margin: 0 0 36px; color: #667169; font-size: 13px; font-weight: 650; }
+      .code { margin: 0; color: #d7ddd8; font-size: clamp(112px, 28vw, 184px); font-weight: 750; line-height: .82; }
+      h1 { margin: 32px 0 10px; font-size: 28px; line-height: 1.2; }
+      p { color: #667169; }
+      a { color: #245fa6; font-weight: 600; text-underline-offset: 3px; }
+      a:hover { color: #174477; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <p class="code" aria-hidden="true">404</p>
+      <h1>404 Not Found</h1>
+      <p>The page you are looking for does not exist.</p>
+      <p>Visit <a href="https://cash.pravapos.com">cash.pravapos.com</a>.</p>
+    </main>
+  </body>
+</html>`);
+});
+
+app.get(["/favicon.ico", "/favicon.svg", "/apple-touch-icon.png"], (_req, res) => {
+  res.status(204).end();
+});
+
 if (clientBuildExists) {
   app.use(express.static(clientDir));
   app.get("*", (req, res, next) => {
@@ -795,33 +829,6 @@ if (clientBuildExists) {
       return next();
     }
     res.sendFile(path.join(clientDir, "index.html"));
-  });
-} else {
-  app.get("/", (_req, res) => {
-    res.type("html").send(`<!doctype html>
-<html lang="id">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Prava Cash</title>
-    <style>
-      body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #f4f7f5; color: #18231d; font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
-      main { max-width: 440px; margin: 24px; padding: 36px; border: 1px solid #dce6df; border-radius: 12px; background: #fff; text-align: center; }
-      h1 { margin: 0 0 12px; font-size: 28px; }
-      p { margin: 0 0 20px; color: #526158; }
-      a { display: inline-block; padding: 11px 18px; border-radius: 7px; background: #087f5b; color: #fff; font-weight: 600; text-decoration: none; }
-      a:hover { background: #066b4d; }
-    </style>
-  </head>
-  <body>
-    <main>
-      <h1>Prava Cash</h1>
-      <p>Backend: <strong>https://pravacash.up.railway.app</strong></p>
-      <p>Untuk menggunakan aplikasi, buka web Prava Cash.</p>
-      <a href="https://cash.pravapos.com">Buka web Prava Cash</a>
-    </main>
-  </body>
-</html>`);
   });
 }
 
