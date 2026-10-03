@@ -58,7 +58,7 @@ export const TransactionModal = ({
                       handleChange({ target: { name: 'type', value: 'expense' } });
                       handleChange({ target: { name: 'category', value: EXPENSE_CATEGORIES[0] } });
                     }}
-                    className={`flex items-center justify-center gap-2 px-3 py-2 text-sm font-bold transition-all sm:py-2.5 ${
+                    className={`flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-sm font-bold transition-all sm:py-2.5 ${
                       (form.type || "expense") === "expense"
                         ? "bg-rose-500 text-white shadow-sm"
                         : "text-slate-600 hover:text-slate-900"
@@ -72,7 +72,7 @@ export const TransactionModal = ({
                       handleChange({ target: { name: 'type', value: 'income' } });
                       handleChange({ target: { name: 'category', value: INCOME_CATEGORIES[0] } });
                     }}
-                    className={`flex items-center justify-center gap-2 px-3 py-2 text-sm font-bold transition-all sm:py-2.5 ${
+                    className={`flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-sm font-bold transition-all sm:py-2.5 ${
                       form.type === "income"
                         ? "bg-emerald-600 text-white shadow-sm"
                         : "text-slate-600 hover:text-slate-900"
@@ -86,7 +86,7 @@ export const TransactionModal = ({
               {/* Nominal */}
               <Field label="Nominal">
                 <div className="flex items-center rounded-2xl border border-slate-200 bg-slate-50 px-4 py-1.5 focus-within:border-emerald-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-emerald-100 transition sm:py-2">
-                  <span className="text-base font-bold text-emerald-600">Rp</span>
+                  <span className={`text-base font-bold ${form.type === 'income' ? 'text-emerald-600' : 'text-rose-500'}`}>Rp</span>
                   <input
                     type="text"
                     name="amount"
