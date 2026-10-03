@@ -140,38 +140,7 @@ Aplikasi menggunakan **Socket.IO** untuk real-time update:
 
 ## 🌐 Deployment
 
-### Arsitektur Deployment
-
-- **Frontend**: Netlify (static hosting)
-- **Backend**: Railway (Node.js hosting)
-
-### Quick Start Deployment
-
-1. **Deploy Backend ke Railway:**
-   - Lihat panduan lengkap: [RAILWAY_SETUP.md](./docs/RAILWAY_SETUP.md)
-   - Build Command: `npm install`
-   - Start Command: `npm start`
-   - **PENTING**: Tambahkan Volume untuk folder `data/` (mount path: `/app/data`)
-
-2. **Deploy Frontend ke Netlify:**
-   - Lihat panduan lengkap: [DEPLOYMENT.md](./docs/DEPLOYMENT.md)
-   - Base directory: `client`
-   - Build command: `npm install && npm run build`
-   - Publish directory: `client/dist`
-   - **PENTING**: Set environment variable `VITE_API_URL` dengan URL backend Railway
-
-3. **Konfigurasi WebSocket:**
-   - Lihat panduan: [WEBSOCKET_FIX.md](./docs/WEBSOCKET_FIX.md)
-   - Pastikan `VITE_API_URL` sudah di-set dengan benar di Netlify
-   - WebSocket akan otomatis menggunakan polling sebagai fallback di Netlify
-
-### Dokumentasi Deployment
-
-- 📘 [DEPLOYMENT.md](./docs/DEPLOYMENT.md) - Panduan deployment umum
-- 🚂 [RAILWAY_SETUP.md](./docs/RAILWAY_SETUP.md) - Setup backend di Railway
-- 🌐 [NETLIFY_FIX.md](./docs/NETLIFY_FIX.md) - Fix masalah di Netlify
-- 🔌 [WEBSOCKET_FIX.md](./docs/WEBSOCKET_FIX.md) - Fix WebSocket auto-update
-- 🔧 [TROUBLESHOOTING.md](./docs/TROUBLESHOOTING.md) - Troubleshooting guide
+Panduan khusus untuk deploy backend-only di Railway dan frontend di Netlify tersedia di [DEPLOYMENT.md](./DEPLOYMENT.md). Ikuti panduan tersebut untuk build settings, environment variables, database PostgreSQL, dan verifikasi deployment.
 
 ## ⚙️ Environment Variables
 
@@ -189,8 +158,11 @@ Aplikasi menggunakan **Socket.IO** untuk real-time update:
 | `DATABASE_URL` | PostgreSQL connection string | `postgresql://user:pass@host:5432/db` | ✅ Ya |
 | `JWT_SECRET`   | Secret key untuk JWT token | `your-secret-key` | ✅ Ya |
 | `JWT_EXPIRES_IN` | JWT token expiration | `7d` | ❌ Opsional (default: `7d`) |
-| `PORT`         | Port server                        | `4000` | ❌ Opsional (default: `4000`) |
+| `PORT`         | Port server lokal; Railway mengatur port deployment | `4000` | ❌ Opsional |
 | `NODE_ENV`     | Environment mode                   | `production` | ❌ Opsional |
+| `CLOUDINARY_CLOUD_NAME` | Cloud name untuk upload gambar | Dari dashboard Cloudinary | Wajib untuk upload |
+| `CLOUDINARY_API_KEY` | API key Cloudinary | Dari dashboard Cloudinary | Wajib untuk upload |
+| `CLOUDINARY_API_SECRET` | API secret Cloudinary | Dari dashboard Cloudinary | Wajib untuk upload |
 
 ## 🔐 Keamanan
 
@@ -213,9 +185,9 @@ Untuk mengubah PIN di production:
 
 ## 📝 Catatan Penting
 
-- **Database Persistence**: Pastikan folder `data/` menggunakan persistent storage/volume di Railway agar database tidak hilang saat restart
+- **Database**: Backend menggunakan PostgreSQL melalui Prisma. Pastikan `DATABASE_URL` menunjuk ke database yang persisten.
 - **WebSocket di Netlify**: Netlify tidak support WebSocket native, jadi Socket.IO akan menggunakan polling sebagai fallback (tetap memberikan real-time update)
-- **Backup**: Disarankan untuk melakukan backup berkala untuk file `data/cashflow.db`
+- **Backup**: Disarankan mengaktifkan backup berkala pada provider PostgreSQL yang digunakan.
 - **Tidak ada data bawaan**: Semua transaksi berasal dari input user
 
 ## 🛠️ Teknologi yang Digunakan
