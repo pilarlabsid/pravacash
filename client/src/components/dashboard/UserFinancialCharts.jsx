@@ -91,7 +91,7 @@ const MonthlyBarChart = ({ entries, timezone, granularity, setGranularity }) => 
   const maxBar = Math.max(...monthlyData.flatMap((m) => [m.inc, m.exp]), 1);
 
   return (
-    <div className="rounded-3xl bg-white p-4 shadow-soft sm:p-6">
+    <div className="flex h-full min-h-0 flex-col rounded-3xl bg-white p-4 shadow-soft sm:p-6">
       <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">Grafik Bulan Ini</p>
         <div className="inline-flex rounded-xl bg-slate-100 p-1" role="group" aria-label="Kelompok waktu grafik">
@@ -111,8 +111,8 @@ const MonthlyBarChart = ({ entries, timezone, granularity, setGranularity }) => 
       <p className="mb-2 text-[10px] font-medium text-slate-400">
         {granularity === "week" ? "Rentang tanggal WIB · pekan Senin–Minggu" : "Tanggal dan hari dalam WIB"}
       </p>
-      <div className="w-full -mt-2">
-        <svg viewBox="0 0 720 360" width="100%" className="block h-auto w-full" preserveAspectRatio="xMidYMid meet" role="img" aria-label={`Perbandingan pemasukan dan pengeluaran ${granularity === "week" ? "per minggu" : "per hari"} bulan ini`}>
+      <div className="mt-1 min-h-0 w-full flex-1">
+        <svg viewBox="0 0 720 360" width="100%" height="100%" className="block h-full w-full" preserveAspectRatio="none" role="img" aria-label={`Perbandingan pemasukan dan pengeluaran ${granularity === "week" ? "per minggu" : "per hari"} bulan ini`}>
           {Array.from({ length: 5 }, (_, index) => 282 - (190 * index) / 4).map((y) => (
             <line key={y} x1="30" y1={y} x2="690" y2={y} stroke="#edf1f5" strokeWidth="1" />
           ))}
@@ -164,10 +164,10 @@ const TrendChart = ({ entries, timezone }) => {
 
   if (monthEntries.length === 0) {
     return (
-      <div className="flex flex-col rounded-3xl bg-white p-4 shadow-soft sm:p-6">
+      <div className="flex h-full min-h-0 flex-col rounded-3xl bg-white p-4 shadow-soft sm:p-6">
         <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">Tren Akumulasi Bulan Ini</p>
         {legend}
-        <div className="grid aspect-[2/1] w-full place-items-center text-sm text-slate-400">
+        <div className="grid min-h-0 w-full flex-1 place-items-center text-sm text-slate-400">
           Belum ada transaksi bulan ini
         </div>
       </div>
@@ -209,13 +209,13 @@ const TrendChart = ({ entries, timezone }) => {
   const showDayLabel = (day) => day === 1 || (day % 5 === 0 && currentDay - day > 3) || day === currentDay;
 
   return (
-    <div className="h-full rounded-3xl bg-white p-4 shadow-soft sm:p-6">
+    <div className="flex h-full min-h-0 flex-col rounded-3xl bg-white p-4 shadow-soft sm:p-6">
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">Tren Akumulasi Bulan Ini</p>
       </div>
       {legend}
-      <div className="w-full">
-        <svg viewBox="0 0 720 360" width="100%" className="block h-auto w-full" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Pemasukan kumulatif, pengeluaran kumulatif, dan arus kas bersih per hari bulan ini">
+      <div className="min-h-0 w-full flex-1">
+        <svg viewBox="0 0 720 360" width="100%" height="100%" className="block h-full w-full" preserveAspectRatio="none" role="img" aria-label="Pemasukan kumulatif, pengeluaran kumulatif, dan arus kas bersih per hari bulan ini">
           {Array.from({ length: 5 }, (_, index) => padY + (h * index) / 4).map((y) => (
             <line key={y} x1={padX} y1={y} x2={w - padX} y2={y} stroke="#edf1f5" strokeWidth="1" />
           ))}
@@ -415,10 +415,21 @@ export const UserFinancialCharts = ({ entries = [], totals = { income: 0, expens
       <div
         ref={carouselRef}
         onScroll={(event) => {
-          const { clientWidth, scrollLeft } = event.currentTarget;
-          if (clientWidth > 0) setActiveChart(Math.round(scrollLeft / clientWidth));
+          const container = event.currentTarget;
+          const containerCenter = container.getBoundingClientRect().left + container.clientWidth / 2;
+          let closestIndex = 0;
+          let closestDistance = Infinity;
+          Array.from(container.children).forEach((slide, index) => {
+            const slideRect = slide.getBoundingClientRect();
+            const distance = Math.abs(slideRect.left + slideRect.width / 2 - containerCenter);
+            if (distance < closestDistance) {
+              closestDistance = distance;
+              closestIndex = index;
+            }
+          });
+          setActiveChart(closestIndex);
         }}
-        className="flex w-full min-w-0 snap-x snap-mandatory overflow-x-auto scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:grid md:grid-cols-2 md:gap-6 md:overflow-visible md:snap-none"
+        className="flex w-full min-w-0 items-stretch gap-3 snap-x snap-mandatory overflow-x-auto scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:grid md:grid-cols-2 md:gap-6 md:overflow-visible md:px-0 md:snap-none"
         role="region"
         aria-label="Carousel grafik keuangan"
         aria-roledescription="carousel"
@@ -427,7 +438,7 @@ export const UserFinancialCharts = ({ entries = [], totals = { income: 0, expens
         {charts.map((chart, index) => (
           <div
             key={chart.label}
-            className="w-full min-w-0 shrink-0 basis-full snap-center md:w-auto md:basis-auto md:snap-none"
+            className="flex min-h-[270px] w-full min-w-0 shrink-0 basis-full snap-center flex-col [&>*]:min-w-0 [&>*]:w-full [&>*]:flex-1 md:min-h-0 md:w-auto md:basis-auto md:snap-none"
             role="group"
             aria-roledescription="slide"
             aria-label={`${index + 1} dari ${charts.length}: ${chart.label}`}
@@ -441,10 +452,16 @@ export const UserFinancialCharts = ({ entries = [], totals = { income: 0, expens
           <button
             key={chart.label}
             type="button"
-            onClick={() => carouselRef.current?.scrollTo({
-              left: index * carouselRef.current.clientWidth,
-              behavior: "smooth",
-            })}
+            onClick={() => {
+              const container = carouselRef.current;
+              const slide = container?.children[index];
+              if (!container || !slide) return;
+              const containerRect = container.getBoundingClientRect();
+              const slideRect = slide.getBoundingClientRect();
+              const targetLeft = container.scrollLeft + slideRect.left - containerRect.left
+                - (container.clientWidth - slide.clientWidth) / 2;
+              container.scrollTo({ left: targetLeft, behavior: "smooth" });
+            }}
             className={`h-2.5 rounded-full transition-all ${activeChart === index ? "w-6 bg-emerald-600" : "w-2.5 bg-slate-300"}`}
             aria-label={`Tampilkan grafik: ${chart.label}`}
             aria-pressed={activeChart === index}

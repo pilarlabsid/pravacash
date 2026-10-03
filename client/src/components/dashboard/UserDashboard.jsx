@@ -12,7 +12,7 @@ export const UserDashboard = ({ totals, sortedEntries, runningEntries, txHook, v
         <div className="block sm:hidden space-y-3">
           {/* Main Balance Hero Card */}
           <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-emerald-950 to-slate-900 p-5 text-white shadow-lg border border-emerald-900/40">
-            <div className="relative z-10 flex items-center justify-between">
+            <div className="relative z-10 flex items-center">
               <div>
                 <p className="text-xs font-bold uppercase tracking-wider text-emerald-400">
                   Total Saldo Kas
@@ -20,11 +20,6 @@ export const UserDashboard = ({ totals, sortedEntries, runningEntries, txHook, v
                 <p className="mt-1 text-2xl font-extrabold tracking-tight text-white">
                   {formatCurrency(totals.balance)}
                 </p>
-              </div>
-              <div className="h-10 w-10 rounded-2xl bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center text-emerald-300">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-                </svg>
               </div>
             </div>
           </div>
