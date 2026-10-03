@@ -816,9 +816,9 @@ if (clientBuildExists) {
   <body>
     <main>
       <h1>Prava Cash</h1>
-      <p>Untuk mengakses aplikasi web, silakan buka Prava Cash melalui tautan berikut.</p>
-      <a href="https://cash.pravapos.com">Buka Prava Cash</a>
-      <p style="margin: 20px 0 0; font-size: 14px">Alamat ini digunakan untuk layanan backend.</p>
+      <p>Backend: <strong>https://pravacash.up.railway.app</strong></p>
+      <p>Untuk menggunakan aplikasi, buka web Prava Cash.</p>
+      <a href="https://cash.pravapos.com">Buka web Prava Cash</a>
     </main>
   </body>
 </html>`);
