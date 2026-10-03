@@ -19,7 +19,8 @@ export default function App() {
     isLogoutConfirmOpen, setIsLogoutConfirmOpen, handleLogin, handleRegister,
     handleLogout, confirmLogout,
     isSettingsOpen, setIsSettingsOpen, settings, settingsForm, setSettingsForm,
-    settingsLoading, settingsError, setSettingsError, handleUpdateProfile, handleUpdatePin,
+    passwordForm, setPasswordForm, passwordError,
+    settingsLoading, settingsError, setSettingsError, handleUpdateProfile, handleUpdatePassword, handleUpdatePin,
     adminHook, txHook,
     pinMode, setPinMode, isPinStep, setIsPinStep, pin, setPin, pinError, setPinError,
     validatePin, resetPinFlow, handlePinInput,
@@ -66,7 +67,6 @@ export default function App() {
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-5 px-3 pt-4 sm:gap-8 sm:px-6 sm:pt-8 lg:px-8">
         <Header
           user={user} currentTime={currentTime} isAdminPage={isAdminPage}
-          timezone={settings.timezone}
           setIsAdminPage={setIsAdminPage} isMenuOpen={isMenuOpen} setIsMenuOpen={setIsMenuOpen}
           setIsSettingsOpen={setIsSettingsOpen} handleLogout={handleLogout}
           setIsConfirmOpen={txHook.setIsConfirmOpen}
@@ -85,7 +85,6 @@ export default function App() {
             onAddUserClick={() => adminHook.setIsAddUserModalOpen(true)}
             onEditUserClick={adminHook.handleEditUser}
             onDeleteUserClick={adminHook.handleDeleteUser}
-            settings={settings}
           />
         ) : (
           <UserDashboard
@@ -93,7 +92,6 @@ export default function App() {
             sortedEntries={sortedEntries}
             runningEntries={runningEntries}
             txHook={txHook}
-            settings={settings}
             validatePin={validatePin}
             modalRef={modalRef}
             chartGranularity={chartGranularity}
@@ -119,7 +117,8 @@ export default function App() {
           settingsForm={settingsForm} setSettingsForm={setSettingsForm}
           settingsError={settingsError} setSettingsError={setSettingsError}
           settingsLoading={settingsLoading}
-          handleUpdateProfile={handleUpdateProfile} handleUpdatePin={handleUpdatePin}
+          passwordForm={passwordForm} setPasswordForm={setPasswordForm} passwordError={passwordError}
+          handleUpdateProfile={handleUpdateProfile} handleUpdatePassword={handleUpdatePassword} handleUpdatePin={handleUpdatePin}
         />
       </div>
 

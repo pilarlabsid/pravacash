@@ -1,8 +1,7 @@
 import { useState, useCallback } from "react";
 import { getApiUrl, safeJson } from "./useApi";
-import { formatDate } from "../lib/format";
+import { DEFAULT_DATA_TIMEZONE, formatDate, getNow } from "../lib/format";
 import { INCOME_CATEGORIES, EXPENSE_CATEGORIES } from "../constants";
-import { getNow } from "../lib/format";
 
 const toDatetimeLocal = (isoString, timezone = 'Asia/Jakarta') => {
   if (!isoString) return '';
@@ -35,7 +34,7 @@ const createInitialForm = (overrides = {}, timezone = "Asia/Jakarta") => {
 export const useTransactions = ({ token, isAuthenticated, settings, setToast, authenticatedFetch }) => {
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [form, setForm] = useState(() => createInitialForm({}, settings.timezone || "Asia/Jakarta"));
+  const [form, setForm] = useState(() => createInitialForm());
   const [submitting, setSubmitting] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [exporting, setExporting] = useState(false);
@@ -99,12 +98,12 @@ export const useTransactions = ({ token, isAuthenticated, settings, setToast, au
       setForm(createInitialForm({
         description: entry.description, category: entry.category,
         amount: String(entry.amount), type: entry.type,
-        date: toDatetimeLocal(entry.date, settings.timezone || 'Asia/Jakarta'),
+        date: toDatetimeLocal(entry.date, DEFAULT_DATA_TIMEZONE),
         proof_url: entry.proof_url || '',
-      }, settings.timezone || "Asia/Jakarta"));
+      }, DEFAULT_DATA_TIMEZONE));
     } else {
       setEditingTarget(null);
-      setForm(createInitialForm({}, settings.timezone || "Asia/Jakarta"));
+      setForm(createInitialForm());
     }
     setIsModalOpen(true);
     setTimeout(() => {
@@ -346,7 +345,7 @@ export const useTransactions = ({ token, isAuthenticated, settings, setToast, au
     setExporting(true);
     try {
       const { utils: XLSXUtils, writeFile: writeXLSXFile } = await import("xlsx");
-      const timezone = settings.timezone || "Asia/Jakarta";
+      const timezone = DEFAULT_DATA_TIMEZONE;
       const income = runningEntries.filter((entry) => entry.type === "income").reduce((sum, entry) => sum + Number(entry.amount || 0), 0);
       const expense = runningEntries.filter((entry) => entry.type === "expense").reduce((sum, entry) => sum + Number(entry.amount || 0), 0);
       const rows = [
@@ -369,7 +368,11 @@ export const useTransactions = ({ token, isAuthenticated, settings, setToast, au
       }
       const wb = XLSXUtils.book_new();
       XLSXUtils.book_append_sheet(wb, ws, "Transaksi");
-      writeXLSXFile(wb, `prava-cash-transactions-${new Date().toISOString().slice(0,10)}.xlsx`);
+      const safeUserName = String(settings.name || "User")
+        .trim()
+        .replace(/[<>:"/\\|?*\u0000-\u001f]/g, "")
+        .replace(/\s+/g, "-") || "User";
+      writeXLSXFile(wb, `Laporan-Transaksi-${safeUserName}-${new Date().toISOString().slice(0, 10)}.xlsx`);
       setToast({ type: "success", message: "File Excel siap diunduh." });
       setIsExportPinOpen(false);
     } catch (error) {
@@ -384,7 +387,7 @@ export const useTransactions = ({ token, isAuthenticated, settings, setToast, au
     if (settings.pinEnabled && !(await validatePin())) return;
     try {
       const { generateTransactionPDF } = await import("../utils/pdfExport");
-      generateTransactionPDF({ transactions: runningEntries, summary: totals, user, timezone: settings.timezone || "Asia/Jakarta", granularity });
+      generateTransactionPDF({ transactions: runningEntries, summary: totals, user, timezone: DEFAULT_DATA_TIMEZONE, granularity, sourceUrl: window.location.origin });
       setToast({ type: "success", message: "Laporan PDF siap diunduh." });
     } catch (error) {
       setToast({ type: "error", message: "Gagal membuat laporan PDF." });

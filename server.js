@@ -293,16 +293,12 @@ app.put(
     const { name, email, timezone } = req.body ?? {};
     const userId = req.user.userId;
 
+    if (email !== undefined) {
+      return res.status(400).json({ message: "Email tidak dapat diubah." });
+    }
+
     if (name !== undefined && (!name || !name.trim())) {
       return res.status(400).json({ message: "Nama tidak boleh kosong." });
-    }
-
-    if (email !== undefined && (!email || !email.trim())) {
-      return res.status(400).json({ message: "Email tidak boleh kosong." });
-    }
-
-    if (email !== undefined && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return res.status(400).json({ message: "Format email tidak valid." });
     }
 
     // Validate timezone if provided
@@ -342,6 +338,30 @@ app.put(
     } catch (error) {
       return res.status(400).json({ message: error.message });
     }
+  })
+);
+
+// Change user password
+app.put(
+  "/api/user/password",
+  auth.authenticateToken,
+  asyncHandler(async (req, res) => {
+    const { currentPassword, newPassword } = req.body ?? {};
+    if (typeof currentPassword !== "string" || !currentPassword || typeof newPassword !== "string" || !newPassword) {
+      return res.status(400).json({ message: "Password lama dan password baru wajib diisi." });
+    }
+    if (newPassword.length < 6) {
+      return res.status(400).json({ message: "Password baru minimal 6 karakter." });
+    }
+
+    const passwordHash = await database.getUserPasswordHash(req.user.userId);
+    if (!passwordHash || !(await auth.verifyPassword(currentPassword, passwordHash))) {
+      return res.status(400).json({ message: "Password lama tidak sesuai." });
+    }
+
+    const newPasswordHash = await auth.hashPassword(newPassword);
+    await database.updateUserPassword({ id: req.user.userId, passwordHash: newPasswordHash });
+    return res.json({ message: "Password berhasil diperbarui." });
   })
 );
 

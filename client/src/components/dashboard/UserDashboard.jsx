@@ -4,7 +4,7 @@ import { formatCurrency } from '../../lib/format';
 import { UserFinancialCharts } from './UserFinancialCharts';
 import { TransactionTable } from './TransactionTable';
 
-export const UserDashboard = ({ totals, sortedEntries, runningEntries, txHook, settings, validatePin, modalRef, chartGranularity, setChartGranularity }) => {
+export const UserDashboard = ({ totals, sortedEntries, runningEntries, txHook, validatePin, modalRef, chartGranularity, setChartGranularity }) => {
   return (
     <>
       <section className="space-y-3 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-6">
@@ -74,7 +74,7 @@ export const UserDashboard = ({ totals, sortedEntries, runningEntries, txHook, s
       </section>
 
       <section className="grid min-w-0 gap-4">
-        <UserFinancialCharts entries={sortedEntries} totals={totals} timezone={settings?.timezone} chartGranularity={chartGranularity} setChartGranularity={setChartGranularity} />
+        <UserFinancialCharts entries={sortedEntries} totals={totals} chartGranularity={chartGranularity} setChartGranularity={setChartGranularity} />
 
         <TransactionTable
           loading={txHook.loading} runningEntries={runningEntries}
@@ -84,7 +84,6 @@ export const UserDashboard = ({ totals, sortedEntries, runningEntries, txHook, s
           setDeleteTarget={txHook.setDeleteTarget}
           setIsDeleteConfirmOpen={txHook.setIsDeleteConfirmOpen}
           setIsConfirmOpen={txHook.setIsConfirmOpen}
-          timezone={settings.timezone}
         />
       </section>
     </>

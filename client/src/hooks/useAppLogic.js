@@ -6,6 +6,7 @@ import { useSettings } from "./useSettings";
 import { usePin } from "./usePin";
 import { useTransactions } from "./useTransactions";
 import { useAdminData } from "./useAdminData";
+import { getNow, toWibISOString } from "../lib/format";
 
 const safeJson = async (response) => {
   try { return await response.json(); } catch { return {}; }
@@ -46,7 +47,8 @@ export const useAppLogic = () => {
   const {
     isSettingsOpen, setIsSettingsOpen, settings, setSettings,
     settingsForm, setSettingsForm, settingsLoading, settingsError, setSettingsError,
-    fetchSettings, handleUpdateProfile, handleUpdatePin
+    passwordForm, setPasswordForm, passwordError,
+    fetchSettings, handleUpdateProfile, handleUpdatePassword, handleUpdatePin
   } = useSettings({ token, isAuthenticated, user, setUser, setToast, authenticatedFetch });
 
   // 3. Admin Data Hook
@@ -200,7 +202,7 @@ export const useAppLogic = () => {
       category: form.category || (form.type === "income" ? "Gaji" : "Makanan"),
       amount: form.amount ? Number(form.amount.toString().replace(/[^\d]/g, "")) : 0,
       type: form.type === "income" || form.type === "expense" ? form.type : "expense",
-      date: form.date || new Date().toISOString().split('T')[0],
+      date: toWibISOString(form.date || getNow()),
     };
 
     if (!isPinStep) {
@@ -233,7 +235,7 @@ export const useAppLogic = () => {
         if (!res.ok) throw new Error((await safeJson(res)).message || "Gagal simpan");
         setToast({ type: "success", message: "Transaksi tersimpan!" });
       }
-      txHook.setForm(txHook.createInitialForm({}, settings.timezone || "Asia/Jakarta"));
+      txHook.setForm(txHook.createInitialForm());
       txHook.fetchEntries();
       resetPinFlow();
       txHook.setIsModalOpen(false);
@@ -264,7 +266,8 @@ export const useAppLogic = () => {
     isLogoutConfirmOpen, setIsLogoutConfirmOpen, handleLogin, handleRegister,
     handleLogout, confirmLogout,
     isSettingsOpen, setIsSettingsOpen, settings, settingsForm, setSettingsForm,
-    settingsLoading, settingsError, setSettingsError, handleUpdateProfile, handleUpdatePin,
+    passwordForm, setPasswordForm, passwordError,
+    settingsLoading, settingsError, setSettingsError, handleUpdateProfile, handleUpdatePassword, handleUpdatePin,
     adminHook, txHook,
     pinMode, setPinMode, isPinStep, setIsPinStep, pin, setPin, pinError, setPinError,
     validatePin, resetPinFlow, handlePinInput,

@@ -155,6 +155,16 @@ function getUserSettings(id) {
     return user || null;
 }
 
+  function getUserPasswordHash(id) {
+    const user = db.prepare("SELECT password_hash FROM users WHERE id = ?").get(id);
+    return user?.password_hash || null;
+  }
+
+  function updateUserPassword({ id, passwordHash }) {
+    db.prepare("UPDATE users SET password_hash = ?, updated_at = datetime('now') WHERE id = ?")
+      .run(passwordHash, id);
+  }
+
 // Update user profile
 function updateUserProfile({ id, name, email, timezone }) {
     const updates = [];
@@ -542,6 +552,8 @@ module.exports = {
     getUserByEmail,
     getUserById,
     getUserSettings,
+    getUserPasswordHash,
+    updateUserPassword,
     updateUserProfile,
     updateUserPin,
     verifyUserPin,

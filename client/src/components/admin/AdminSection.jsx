@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { formatCurrency, formatDate } from '../../lib/format';
+import { DEFAULT_DATA_TIMEZONE, formatCurrency, formatDate } from '../../lib/format';
 import { LoadingSpinner, LoadingOverlay, StatCard, Badge } from '../common/UIComponents';
 import { UserFinancialCharts } from '../dashboard/UserFinancialCharts';
 
-const UserTransactionDetail = ({ userGroup, onBack, timezone }) => {
+const UserTransactionDetail = ({ userGroup, onBack }) => {
   const income = Number(userGroup.total_income) || 0;
   const expense = Number(userGroup.total_expense) || 0;
   const totals = { income, expense, balance: income - expense };
@@ -25,7 +25,7 @@ const UserTransactionDetail = ({ userGroup, onBack, timezone }) => {
         </button>
       </div>
 
-      <UserFinancialCharts entries={userGroup.transactions} totals={totals} timezone={timezone} />
+      <UserFinancialCharts entries={userGroup.transactions} totals={totals} />
 
       <div className="overflow-hidden rounded-2xl bg-white shadow-soft">
         <div className="border-b border-slate-100 px-4 py-3.5 sm:px-5">
@@ -48,7 +48,7 @@ const UserTransactionDetail = ({ userGroup, onBack, timezone }) => {
                 .sort((a, b) => new Date(b.date) - new Date(a.date))
                 .map((transaction) => (
                   <tr key={transaction.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="whitespace-nowrap px-4 py-3 text-sm text-slate-600">{formatDate(transaction.date, timezone)}</td>
+                    <td className="whitespace-nowrap px-4 py-3 text-sm text-slate-600">{formatDate(transaction.date)}</td>
                     <td className="px-4 py-3 text-sm text-slate-600">
                       <p className="font-semibold text-slate-800">{transaction.description}</p>
                       <p className="mt-0.5 text-xs text-slate-400">{transaction.category || 'Lainnya'}</p>
@@ -70,7 +70,7 @@ const UserTransactionDetail = ({ userGroup, onBack, timezone }) => {
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <p className="text-sm font-bold text-slate-900 truncate">{transaction.description}</p>
-                    <p className="text-[11px] text-slate-400 mt-0.5">{formatDate(transaction.date, timezone)} • {transaction.category || 'Lainnya'}</p>
+                    <p className="text-[11px] text-slate-400 mt-0.5">{formatDate(transaction.date)} • {transaction.category || 'Lainnya'}</p>
                   </div>
                   <div className="text-right shrink-0">
                     <p className={`text-sm font-extrabold ${transaction.type === 'income' ? 'text-emerald-600' : 'text-rose-600'}`}>
@@ -478,10 +478,10 @@ export const AdminSection = ({
                                 </td>
                                 <td className="px-4 py-3 text-sm text-slate-600">{u.transaction_count || 0}</td>
                                 <td className="px-4 py-3 text-sm text-slate-500">
-                                  {u.last_login_at ? formatDate(u.last_login_at, settings.timezone || 'Asia/Jakarta') : 'Never'}
+                                  {u.last_login_at ? formatDate(u.last_login_at) : 'Never'}
                                 </td>
                                 <td className="px-4 py-3 text-sm text-slate-500">
-                                  {new Date(u.created_at).toLocaleDateString('id-ID', { timeZone: settings.timezone || 'Asia/Jakarta' })}
+                                  {new Date(u.created_at).toLocaleDateString('id-ID', { timeZone: DEFAULT_DATA_TIMEZONE })}
                                 </td>
                                 <td className="px-4 py-3">
                                   <div className="flex justify-center gap-2">
@@ -537,7 +537,6 @@ export const AdminSection = ({
                         <UserTransactionDetail
                           userGroup={selectedTransactionUser}
                           onBack={() => setSelectedTransactionUser(null)}
-                          timezone={settings.timezone || 'Asia/Jakarta'}
                         />
                       );
                     }

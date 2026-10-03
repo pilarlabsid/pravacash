@@ -4,7 +4,7 @@ import { getBrowserTimezone, getTimezoneLabel } from '../../lib/format';
 export const Header = ({
   user, currentTime, isAdminPage, setIsAdminPage,
   isMenuOpen, setIsMenuOpen, setIsSettingsOpen, handleLogout,
-  setIsConfirmOpen, handleImportExcel, handleDownloadExcel, handleDownloadPdf, openModal, timezone
+  setIsConfirmOpen, handleImportExcel, handleDownloadExcel, handleDownloadPdf, openModal
 }) => {
   const isAdmin = String(user?.role || '').toLowerCase() === 'admin';
   const browserTimezone = getBrowserTimezone();

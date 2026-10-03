@@ -198,7 +198,7 @@ export const ImportPinModal = ({ isOpen, pin, pinError, importing, importPreview
             <div className="space-y-1">
               {importPreview.slice(0, 5).map((t, idx) => (
                 <p key={idx} className="text-xs text-slate-600">
-                  • {formatDate(t.date, settings.timezone || "Asia/Jakarta")} - {t.description} - {formatCurrency(t.amount)} ({t.type === "income" ? "Pemasukan" : "Pengeluaran"})
+                  • {formatDate(t.date)} - {t.description} - {formatCurrency(t.amount)} ({t.type === "income" ? "Pemasukan" : "Pengeluaran"})
                 </p>
               ))}
               {importPreview.length > 5 && (

@@ -132,7 +132,7 @@ export const TransactionModal = ({
                   <input
                     type="datetime-local"
                     name="date"
-                    value={form.date || getNow(settings.timezone || "Asia/Jakarta")}
+                    value={form.date || getNow()}
                     onChange={handleChange}
                     className={inputClasses}
                   />

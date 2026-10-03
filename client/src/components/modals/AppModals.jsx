@@ -10,7 +10,8 @@ export const AppModals = ({
   settings, modalRef, handleSubmitTx, handlePinInput, closeModal, backFromPin, confirmResetWithPin,
   confirmDeleteWithPin, validatePin, runningEntries, resetPinFlow, isLogoutConfirmOpen, setIsLogoutConfirmOpen,
   confirmLogout, isSettingsOpen, setIsSettingsOpen, settingsForm, setSettingsForm, settingsError,
-  setSettingsError, settingsLoading, handleUpdateProfile, handleUpdatePin
+  setSettingsError, settingsLoading, passwordForm, setPasswordForm, passwordError,
+  handleUpdateProfile, handleUpdatePassword, handleUpdatePin
 }) => {
   return (
     <>
@@ -66,7 +67,8 @@ export const AppModals = ({
       <SettingsModal
         isOpen={isSettingsOpen} settingsForm={settingsForm} settingsError={settingsError} settingsLoading={settingsLoading} settings={settings}
         setSettingsForm={setSettingsForm} setIsSettingsOpen={setIsSettingsOpen} setSettingsError={setSettingsError}
-        handleUpdateProfile={handleUpdateProfile} handleUpdatePin={handleUpdatePin}
+        passwordForm={passwordForm} setPasswordForm={setPasswordForm} passwordError={passwordError}
+        handleUpdateProfile={handleUpdateProfile} handleUpdatePassword={handleUpdatePassword} handleUpdatePin={handleUpdatePin}
       />
 
       <DeleteUserConfirmModal

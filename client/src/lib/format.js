@@ -98,3 +98,12 @@ export const getNow = (timezone) => {
 
   return `${year}-${month}-${day}T${formattedHour}:${minute}`;
 };
+
+export const toWibISOString = (dateTimeLocal) => {
+  const match = /^(\d{4}-\d{2}-\d{2})(?:T(\d{2}):(\d{2})(?::(\d{2}))?)?$/.exec(dateTimeLocal || "");
+  if (!match) return null;
+
+  const [, date, hour = "00", minute = "00", second = "00"] = match;
+  const parsedDate = new Date(`${date}T${hour}:${minute}:${second}+07:00`);
+  return Number.isNaN(parsedDate.getTime()) ? null : parsedDate.toISOString();
+};

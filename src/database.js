@@ -113,6 +113,18 @@ async function getUserSettings(id) {
   });
 }
 
+async function getUserPasswordHash(id) {
+  const user = await prisma.user.findUnique({ where: { id }, select: { password_hash: true } });
+  return user?.password_hash || null;
+}
+
+async function updateUserPassword({ id, passwordHash }) {
+  await prisma.user.update({
+    where: { id },
+    data: { password_hash: passwordHash, updated_at: new Date() },
+  });
+}
+
 async function updateUserProfile({ id, name, email, timezone }) {
   const data = { updated_at: new Date() };
 
@@ -487,6 +499,8 @@ module.exports = {
   getUserByEmail,
   getUserById,
   getUserSettings,
+  getUserPasswordHash,
+  updateUserPassword,
   updateUserProfile,
   updateUserPin,
   verifyUserPin,

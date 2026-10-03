@@ -6,7 +6,6 @@ export const UserTransactionTable = ({
   loading,
   entries = [],
   runningEntries = [],
-  settings = {},
   onEdit,
   onDelete,
 }) => {
@@ -54,7 +53,7 @@ export const UserTransactionTable = ({
                     {runningEntries.map((entry) => (
                       <tr key={entry.id}>
                         <td className="px-4 py-3 text-slate-500">
-                          {formatDate(entry.date, settings.timezone || "Asia/Jakarta")}
+                          {formatDate(entry.date)}
                         </td>
                         <td className="px-4 py-3 font-semibold text-slate-900">
                           <div>{entry.description}</div>
@@ -111,7 +110,7 @@ export const UserTransactionTable = ({
                       <div className="flex items-start justify-between gap-2">
                         <div>
                           <p className="text-[11px] uppercase tracking-wide text-slate-400">
-                            {formatDate(entry.date, settings.timezone || "Asia/Jakarta")}
+                            {formatDate(entry.date)}
                           </p>
                           <p className="text-base font-semibold text-slate-900">
                             {entry.description}

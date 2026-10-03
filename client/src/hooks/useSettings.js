@@ -1,13 +1,14 @@
 import { useState, useCallback } from "react";
 import { getApiUrl } from "./useApi";
-import { DEFAULT_DATA_TIMEZONE } from "../lib/format";
 
 export const useSettings = ({ token, isAuthenticated, user, setUser, setToast, authenticatedFetch }) => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [settings, setSettings] = useState({ name: "", email: "", pinEnabled: false, timezone: DEFAULT_DATA_TIMEZONE });
-  const [settingsForm, setSettingsForm] = useState({ name: "", email: "", pin: "", pinEnabled: false, timezone: DEFAULT_DATA_TIMEZONE });
+  const [settings, setSettings] = useState({ name: "", email: "", pinEnabled: false });
+  const [settingsForm, setSettingsForm] = useState({ name: "", email: "", pin: "", pinEnabled: false });
+  const [passwordForm, setPasswordForm] = useState({ currentPassword: "", newPassword: "", confirmPassword: "" });
   const [settingsLoading, setSettingsLoading] = useState(false);
   const [settingsError, setSettingsError] = useState("");
+  const [passwordError, setPasswordError] = useState("");
 
   const fetchSettings = useCallback(async () => {
     if (!token || !isAuthenticated) return;
@@ -18,8 +19,8 @@ export const useSettings = ({ token, isAuthenticated, user, setUser, setToast, a
       if (response.status === 401) return; // let useAuth handle this
       if (response.ok) {
         const data = await response.json();
-        setSettings({ name: data.name, email: data.email, pinEnabled: data.pinEnabled || false, timezone: data.timezone || DEFAULT_DATA_TIMEZONE });
-        setSettingsForm(prev => ({ ...prev, name: data.name, email: data.email, pinEnabled: data.pinEnabled || false, timezone: data.timezone || DEFAULT_DATA_TIMEZONE }));
+        setSettings({ name: data.name, email: data.email, pinEnabled: data.pinEnabled || false });
+        setSettingsForm(prev => ({ ...prev, name: data.name, email: data.email, pinEnabled: data.pinEnabled || false }));
       }
     } catch (error) {
       console.error("Failed to fetch settings:", error);
@@ -32,15 +33,47 @@ export const useSettings = ({ token, isAuthenticated, user, setUser, setToast, a
     setSettingsError("");
     try {
       const response = await authenticatedFetch(`${getApiUrl()}/api/user/profile`, {
-        method: "PUT", body: JSON.stringify({ name: settingsForm.name, email: settingsForm.email, timezone: settingsForm.timezone })
+        method: "PUT", body: JSON.stringify({ name: settingsForm.name })
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.message || "Gagal memperbarui profile.");
       setUser({ ...user, name: data.name, email: data.email });
-      setSettings({ ...settings, name: data.name, email: data.email, timezone: data.timezone || DEFAULT_DATA_TIMEZONE });
+      setSettings({ ...settings, name: data.name, email: data.email });
       setToast({ type: "success", message: "Profile berhasil diperbarui." });
     } catch (error) {
       setSettingsError(error.message);
+    } finally {
+      setSettingsLoading(false);
+    }
+  };
+
+  const handleUpdatePassword = async (e) => {
+    e.preventDefault();
+    setPasswordError("");
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      setPasswordError("Konfirmasi password baru tidak cocok.");
+      return;
+    }
+    if (passwordForm.newPassword.length < 6) {
+      setPasswordError("Password baru minimal 6 karakter.");
+      return;
+    }
+
+    setSettingsLoading(true);
+    try {
+      const response = await authenticatedFetch(`${getApiUrl()}/api/user/password`, {
+        method: "PUT",
+        body: JSON.stringify({
+          currentPassword: passwordForm.currentPassword,
+          newPassword: passwordForm.newPassword,
+        })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || "Gagal memperbarui password.");
+      setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
+      setToast({ type: "success", message: "Password berhasil diperbarui." });
+    } catch (error) {
+      setPasswordError(error.message || "Gagal memperbarui password.");
     } finally {
       setSettingsLoading(false);
     }
@@ -77,7 +110,8 @@ export const useSettings = ({ token, isAuthenticated, user, setUser, setToast, a
     isSettingsOpen, setIsSettingsOpen,
     settings, setSettings,
     settingsForm, setSettingsForm,
+    passwordForm, setPasswordForm, passwordError,
     settingsLoading, settingsError, setSettingsError,
-    fetchSettings, handleUpdateProfile, handleUpdatePin
+    fetchSettings, handleUpdateProfile, handleUpdatePassword, handleUpdatePin
   };
 };

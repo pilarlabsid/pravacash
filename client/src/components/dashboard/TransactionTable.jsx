@@ -11,7 +11,6 @@ export const TransactionTable = ({
   setDeleteTarget,
   setIsDeleteConfirmOpen,
   setIsConfirmOpen,
-  timezone,
 }) => {
   const handleDelete = (id) => {
     setDeleteTarget(id);
@@ -65,7 +64,7 @@ export const TransactionTable = ({
                         className="transition-colors hover:bg-slate-50"
                       >
                         <td className="px-4 py-3 text-slate-500 whitespace-nowrap">
-                          {formatDate(entry.date, timezone || "Asia/Jakarta")}
+                          {formatDate(entry.date)}
                         </td>
                         <td className="px-4 py-3 font-semibold text-slate-900 max-w-[200px]">
                           <div className="truncate">{entry.description}</div>
@@ -133,7 +132,7 @@ export const TransactionTable = ({
                             </p>
                             <div className="mt-0.5 flex flex-wrap items-center gap-1">
                               <span className="text-[10px] font-semibold text-slate-400">
-                                {formatDate(entry.date, timezone || "Asia/Jakarta")}
+                                {formatDate(entry.date)}
                               </span>
                               <span className="text-[10px] text-slate-300">•</span>
                               <span className="rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600">
