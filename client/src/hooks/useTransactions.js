@@ -1,7 +1,6 @@
 import { useState, useCallback } from "react";
 import { getApiUrl, safeJson } from "./useApi";
 import { formatDate } from "../lib/format";
-import { utils as XLSXUtils, writeFile as writeXLSXFile, read as readXLSX } from "xlsx";
 import { INCOME_CATEGORIES, EXPENSE_CATEGORIES } from "../constants";
 import { getNow } from "../lib/format";
 
@@ -182,6 +181,7 @@ export const useTransactions = ({ token, isAuthenticated, settings, setToast, au
   };
 
   const parseExcelFile = async (file) => {
+    const { utils: XLSXUtils, read: readXLSX } = await import("xlsx");
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = (e) => {
@@ -258,7 +258,8 @@ export const useTransactions = ({ token, isAuthenticated, settings, setToast, au
     }
   };
 
-  const downloadImportTemplate = () => {
+  const downloadImportTemplate = async () => {
+    const { utils: XLSXUtils, writeFile: writeXLSXFile } = await import("xlsx");
     const rows = [
       ["PRAVA CASH - TEMPLATE IMPORT TRANSAKSI"],
       ["Isi transaksi mulai dari baris 5. Waktu transaksi menggunakan WIB dan nominal ditulis sebagai angka tanpa Rp."],
@@ -344,6 +345,7 @@ export const useTransactions = ({ token, isAuthenticated, settings, setToast, au
     }
     setExporting(true);
     try {
+      const { utils: XLSXUtils, writeFile: writeXLSXFile } = await import("xlsx");
       const timezone = settings.timezone || "Asia/Jakarta";
       const income = runningEntries.filter((entry) => entry.type === "income").reduce((sum, entry) => sum + Number(entry.amount || 0), 0);
       const expense = runningEntries.filter((entry) => entry.type === "expense").reduce((sum, entry) => sum + Number(entry.amount || 0), 0);
