@@ -7,35 +7,30 @@ export const SettingsModal = ({
   setSettingsForm, setIsSettingsOpen, setSettingsError,
   passwordForm, setPasswordForm, passwordError,
   handleUpdateProfile, handleUpdatePassword, handleUpdatePin,
+  asPage = false,
 }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-slate-900/60 p-0 sm:p-4 backdrop-blur-sm transition-opacity">
-      <div className="w-full max-w-4xl max-h-[92vh] sm:max-h-[88vh] overflow-y-auto rounded-t-[2rem] sm:rounded-2xl bg-white p-4 sm:p-5 shadow-2xl">
+    <div className={asPage ? 'w-full' : 'fixed inset-0 z-50 flex items-end justify-center bg-slate-900/60 p-0 backdrop-blur-sm transition-opacity sm:items-center sm:p-4'}>
+      <div className={asPage ? 'w-full' : 'max-h-[92vh] w-full overflow-y-auto rounded-t-[2rem] bg-white p-4 shadow-2xl sm:max-h-[88vh] sm:rounded-2xl sm:p-5'}>
         {/* Mobile handle indicator */}
-        <div className="w-10 h-1 bg-slate-200 rounded-full mx-auto mb-3 sm:hidden" />
+        {!asPage && <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-slate-200 sm:hidden" />}
 
-        <div className="mb-4 flex items-start justify-between">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-wider text-emerald-600">
-              Pengaturan
-            </p>
-            <h2 className="text-xl font-bold text-slate-900">
-              Profile & Keamanan
-            </h2>
-          </div>
-          <button
-            type="button"
-            onClick={() => {
-              setIsSettingsOpen(false);
-              setSettingsError("");
-            }}
-            className="rounded-full bg-slate-100 p-2 text-slate-500 transition hover:bg-slate-200 active:scale-95"
-            aria-label="Tutup settings"
-          >
-            ✕
-          </button>
+        <div className={`mb-4 flex items-start ${asPage ? '' : 'justify-between'}`}>
+          {!asPage && (
+            <button
+              type="button"
+              onClick={() => {
+                setIsSettingsOpen(false);
+                setSettingsError("");
+              }}
+              className="rounded-full bg-slate-100 p-2 text-slate-500 transition hover:bg-slate-200 active:scale-95"
+              aria-label="Tutup settings"
+            >
+              ✕
+            </button>
+          )}
         </div>
 
         <div className="grid gap-3 lg:grid-cols-2">

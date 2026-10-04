@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { DEFAULT_DATA_TIMEZONE, formatCurrency, formatDate } from '../../lib/format';
 import { LoadingSpinner, LoadingOverlay, StatCard, Badge } from '../common/UIComponents';
 import { UserFinancialCharts } from '../dashboard/UserFinancialCharts';
+import { SettingsModal } from '../modals/SettingsModal';
 
 const UserTransactionDetail = ({ userGroup, onBack }) => {
   const income = Number(userGroup.total_income) || 0;
@@ -87,8 +88,86 @@ const UserTransactionDetail = ({ userGroup, onBack }) => {
   );
 };
 
+const AdminUserTable = ({ accounts, currentUserId, emptyLabel, onEditUserClick, onDeleteUserClick }) => (
+  accounts.length === 0 ? (
+    <p className="px-4 py-8 text-center text-sm text-slate-500">{emptyLabel}</p>
+  ) : (
+    <>
+      <div className="hidden overflow-x-auto md:block">
+        <table className="min-w-full divide-y divide-slate-100">
+        <thead className="bg-slate-50">
+          <tr>
+            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Nama</th>
+            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Email</th>
+            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Transaksi</th>
+            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Login Terakhir</th>
+            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Dibuat</th>
+            <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-slate-500">Aksi</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-slate-100 bg-white">
+          {accounts.map((account) => (
+            <tr key={account.id} className="transition-colors hover:bg-slate-50">
+              <td className="px-4 py-3 text-sm font-semibold text-slate-900">{account.name}</td>
+              <td className="px-4 py-3 text-sm text-slate-600">{account.email}</td>
+              <td className="px-4 py-3 text-sm text-slate-600">{account.transaction_count || 0}</td>
+              <td className="px-4 py-3 text-sm text-slate-500">{account.last_login_at ? formatDate(account.last_login_at) : 'Belum pernah'}</td>
+              <td className="px-4 py-3 text-sm text-slate-500">
+                {new Date(account.created_at).toLocaleDateString('id-ID', { timeZone: DEFAULT_DATA_TIMEZONE })}
+              </td>
+              <td className="px-4 py-3">
+                <div className="flex justify-center gap-2">
+                  <button onClick={() => onEditUserClick(account)} className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-100">Edit</button>
+                  {account.id !== currentUserId && (
+                    <button onClick={() => onDeleteUserClick(account.id)} className="rounded-full bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-600 transition hover:bg-rose-100">Hapus</button>
+                  )}
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+        </table>
+      </div>
+      <div className="divide-y divide-slate-100 md:hidden">
+        {accounts.map((account) => (
+          <article key={account.id} className="space-y-3 p-4">
+            <div className="flex min-w-0 items-start justify-between gap-3">
+              <div className="min-w-0">
+                <h3 className="truncate text-sm font-bold text-slate-900">{account.name}</h3>
+                <p className="mt-0.5 break-all text-xs text-slate-500">{account.email}</p>
+              </div>
+              <span className="shrink-0 rounded-md bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-600">
+                {account.transaction_count || 0} transaksi
+              </span>
+            </div>
+            <div className="grid grid-cols-2 gap-3 text-xs">
+              <div>
+                <p className="text-slate-500">Login terakhir</p>
+                <p className="mt-0.5 font-medium text-slate-700">{account.last_login_at ? formatDate(account.last_login_at) : 'Belum pernah'}</p>
+              </div>
+              <div>
+                <p className="text-slate-500">Dibuat</p>
+                <p className="mt-0.5 font-medium text-slate-700">
+                  {new Date(account.created_at).toLocaleDateString('id-ID', { timeZone: DEFAULT_DATA_TIMEZONE })}
+                </p>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 border-t border-slate-100 pt-3">
+              <button onClick={() => onEditUserClick(account)} className="min-h-9 rounded-lg bg-emerald-50 px-3 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-100">Edit</button>
+              {account.id !== currentUserId && (
+                <button onClick={() => onDeleteUserClick(account.id)} className="min-h-9 rounded-lg bg-rose-50 px-3 text-xs font-semibold text-rose-600 transition hover:bg-rose-100">Hapus</button>
+              )}
+            </div>
+          </article>
+        ))}
+      </div>
+    </>
+  )
+);
+
 export const AdminSection = ({
   user,
+  currentTime,
   adminTab,
   setAdminTab,
   adminLoading,
@@ -99,48 +178,149 @@ export const AdminSection = ({
   onAddUserClick,
   onEditUserClick,
   onDeleteUserClick,
-  settings = {},
+  isDarkMode,
+  onToggleDarkMode,
+  onLogoutClick,
+  settings,
+  settingsForm,
+  setSettingsForm,
+  settingsError,
+  setSettingsError,
+  settingsLoading,
+  passwordForm,
+  setPasswordForm,
+  passwordError,
+  handleUpdateProfile,
+  handleUpdatePassword,
+  handleUpdatePin,
 }) => {
   const [selectedTransactionUser, setSelectedTransactionUser] = useState(null);
+  const adminAccounts = adminUsers.filter((account) => String(account.role || '').toLowerCase() === 'admin');
+  const userAccounts = adminUsers.filter((account) => String(account.role || '').toLowerCase() !== 'admin');
+  const navigation = [
+    { id: 'dashboard', label: 'Dashboard', icon: 'dashboard' },
+    { id: 'admins', label: 'Admin', count: adminAccounts.length, icon: 'users' },
+    { id: 'users', label: 'Pengguna', count: userAccounts.length, icon: 'users' },
+    { id: 'transactions', label: 'Transaksi', count: adminTransactions.length, icon: 'transactions' },
+    { id: 'settings', label: 'Pengaturan', icon: 'settings' },
+  ];
+  const pageTitle = selectedTransactionUser
+    ? 'Detail Transaksi'
+    : navigation.find((item) => item.id === adminTab)?.label || 'Dashboard';
+  const sidebarSurface = isDarkMode
+    ? 'border-r border-white/10 bg-[#18232e] text-slate-100'
+    : 'border-r border-slate-200 bg-white text-slate-800';
+  const sidebarMutedText = isDarkMode ? 'text-slate-400' : 'text-slate-500';
+  const sidebarInactiveItem = isDarkMode
+    ? 'text-slate-300 hover:bg-white/5 hover:text-white'
+    : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900';
+  const sidebarCount = isDarkMode ? 'bg-white/10 text-slate-300' : 'bg-slate-100 text-slate-600';
+  const sidebarProfile = isDarkMode ? 'bg-white/5' : 'bg-slate-50';
+  const sidebarAvatar = isDarkMode ? 'bg-emerald-800 text-emerald-100' : 'bg-emerald-100 text-emerald-800';
+  const sidebarLogout = isDarkMode
+    ? 'text-slate-300 hover:bg-rose-500/15 hover:text-rose-200'
+    : 'text-slate-600 hover:bg-rose-50 hover:text-rose-700';
+
+  if (String(user?.role || '').toLowerCase() !== 'admin') return null;
 
   return (
-    <>
-      {/* Admin Page - Auto show if user is admin */}
-      {String(user?.role || '').toLowerCase() === 'admin' && (
-        <div className="admin-page space-y-5">
-          {/* Admin Tabs */}
-          <div className="flex gap-1.5 rounded-2xl bg-white p-1.5 shadow-soft border border-slate-100">
+    <div className="admin-page flex h-screen min-h-0 flex-col overflow-hidden lg:flex-row">
+      <aside className={`flex shrink-0 flex-col ${sidebarSurface} lg:h-screen lg:w-64`}>
+        <div className="flex items-center gap-2.5 px-3 py-3 lg:gap-3 lg:px-6 lg:py-7">
+          <svg width="40" height="40" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-9 w-9 shrink-0 drop-shadow-sm lg:h-10 lg:w-10" aria-hidden="true">
+            <rect width="48" height="48" rx="14" fill="#047857" />
+            <rect x="10" y="24" width="7" height="15" rx="3.5" fill="#a7f3d0" />
+            <rect x="20" y="16" width="7" height="23" rx="3.5" fill="#34d399" />
+            <rect x="30" y="9" width="7" height="30" rx="3.5" fill="#ffffff" />
+          </svg>
+          <div>
+            <p className="text-base font-extrabold">Prava Cash</p>
+            <p className={`text-[10px] font-bold uppercase tracking-widest ${isDarkMode ? 'text-emerald-300' : 'text-emerald-700'}`}>Admin Console</p>
+          </div>
+        </div>
+
+        <nav aria-label="Navigasi admin" className={`fixed inset-x-3 bottom-3 z-40 grid grid-cols-5 gap-1.5 rounded-full border p-1.5 shadow-xl backdrop-blur-md ${isDarkMode ? 'border-white/10 bg-[#18232e]/95' : 'border-slate-200 bg-white/95'} lg:static lg:flex lg:flex-1 lg:flex-col lg:gap-1 lg:overflow-visible lg:rounded-none lg:border-0 lg:bg-transparent lg:px-4 lg:py-5 lg:shadow-none lg:backdrop-blur-none`}>
+          <p className={`hidden px-3 pb-2 text-[10px] font-bold uppercase tracking-widest lg:block ${isDarkMode ? 'text-emerald-300/70' : 'text-emerald-700/70'}`}>Menu</p>
+          {navigation.map((item) => (
             <button
+              key={item.id}
               type="button"
-              onClick={() => { setAdminTab("dashboard"); setSelectedTransactionUser(null); }}
-              className={`min-w-0 flex-1 truncate rounded-xl px-2.5 py-2.5 text-xs sm:text-sm font-bold transition sm:px-4 sm:py-3 ${adminTab === "dashboard"
-                ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-sm"
-                : "text-slate-600 hover:bg-slate-50"
+              onClick={() => { setAdminTab(item.id); setSelectedTransactionUser(null); }}
+              aria-label={item.label}
+              aria-current={adminTab === item.id ? 'page' : undefined}
+              title={item.label}
+              className={`flex min-h-14 min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1 py-2 text-center text-[10px] font-semibold leading-tight transition-[color,box-shadow] sm:text-xs lg:min-h-11 lg:w-full lg:flex-row lg:justify-start lg:gap-3 lg:rounded-lg lg:px-3 lg:py-0 lg:text-left lg:text-sm ${adminTab === item.id
+                ? `${isDarkMode ? 'text-emerald-300' : 'text-emerald-700'} lg:bg-emerald-600 lg:text-white`
+                : sidebarInactiveItem
                 }`}
             >
-              Dashboard
+              <span className={`flex shrink-0 items-center justify-center rounded-full lg:h-auto lg:w-auto lg:rounded-none ${adminTab === item.id ? 'h-11 w-11 bg-emerald-600 text-white lg:bg-transparent' : 'h-9 w-9'}`}>
+                <svg className="h-4 w-4 shrink-0 lg:h-[18px] lg:w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  {item.icon === 'dashboard' && <><rect x="3" y="3" width="8" height="8" rx="1.5" /><rect x="14" y="3" width="7" height="5" rx="1.5" /><rect x="14" y="11" width="7" height="10" rx="1.5" /><rect x="3" y="14" width="8" height="7" rx="1.5" /></>}
+                  {item.icon === 'users' && <><path d="M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="10" cy="7" r="4" /><path d="M20 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" /></>}
+                  {item.icon === 'transactions' && <><path d="M4 7h16M4 12h16M4 17h10" /><circle cx="18" cy="17" r="3" /></>}
+                  {item.icon === 'settings' && <><circle cx="12" cy="12" r="3" /><path d="m19.4 15 .1.1a1.7 1.7 0 0 1-2.4 2.4l-.1-.1a1.7 1.7 0 0 0-2.9 1.2v.3a1.7 1.7 0 0 1-3.4 0v-.2a1.7 1.7 0 0 0-2.9-1.2l-.1.1a1.7 1.7 0 0 1-2.4-2.4l.1-.1A1.7 1.7 0 0 0 4.2 12H4a1.7 1.7 0 0 1 0-3.4h.2a1.7 1.7 0 0 0 1.2-2.9l-.1-.1a1.7 1.7 0 0 1 2.4-2.4l.1.1a1.7 1.7 0 0 0 2.9-1.2v-.3a1.7 1.7 0 0 1 3.4 0V2a1.7 1.7 0 0 0 2.9 1.2l.1-.1a1.7 1.7 0 0 1 2.4 2.4l-.1.1a1.7 1.7 0 0 0 1.2 2.9h.3a1.7 1.7 0 0 1 0 3.4h-.2a1.7 1.7 0 0 0-1.2 3.1Z" /></>}
+                </svg>
+              </span>
+              <span className="sr-only lg:not-sr-only lg:max-w-full lg:truncate lg:whitespace-nowrap">{item.label}</span>
+              {item.count !== undefined && <span className={`ml-auto hidden rounded-md px-2 py-0.5 text-xs lg:inline-flex ${adminTab === item.id ? 'bg-white/20 text-white' : sidebarCount}`}>{item.count}</span>}
             </button>
-            <button
-              type="button"
-              onClick={() => { setAdminTab("users"); setSelectedTransactionUser(null); }}
-              className={`min-w-0 flex-1 truncate rounded-xl px-2.5 py-2.5 text-xs sm:text-sm font-bold transition sm:px-4 sm:py-3 ${adminTab === "users"
-                ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-sm"
-                : "text-slate-600 hover:bg-slate-50"
-                }`}
-            >
-              Users ({adminUsers.length})
+          ))}
+        </nav>
+
+        <div className={`hidden border-t p-4 lg:block ${isDarkMode ? 'border-white/10' : 'border-slate-200'}`}>
+          <div className={`flex min-w-0 items-center gap-3 rounded-lg p-3 ${sidebarProfile}`}>
+            <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold ${sidebarAvatar}`}>{user?.name?.charAt(0)?.toUpperCase() || 'A'}</span>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold">{user?.name}</p>
+              <p className={`truncate text-xs ${sidebarMutedText}`}>Administrator</p>
+            </div>
+          </div>
+          <button type="button" onClick={onLogoutClick} className={`mt-2 flex min-h-10 w-full items-center gap-3 rounded-lg px-3 text-sm font-semibold transition ${sidebarLogout}`}>
+            <svg className="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M10 17l5-5-5-5M15 12H3" /><path d="M12 3h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-6" /></svg>
+            Keluar
+          </button>
+        </div>
+      </aside>
+
+      <div className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain pb-20 lg:pb-0">
+        <header className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-white px-3 py-3 sm:gap-4 sm:px-7 sm:py-4 lg:px-9">
+          <div>
+            <p className="text-xs font-semibold text-slate-500">Panel administrasi</p>
+            <h1 className="mt-0.5 text-xl font-bold text-slate-900">{pageTitle}</h1>
+          </div>
+          <div className="flex items-center gap-2 sm:gap-3">
+            <p className="hidden text-right text-xs font-medium text-slate-500 sm:block">
+              {currentTime?.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+            </p>
+            <button type="button" onClick={onToggleDarkMode} title={isDarkMode ? 'Mode terang' : 'Mode gelap'} aria-label={isDarkMode ? 'Aktifkan mode terang' : 'Aktifkan mode gelap'} aria-pressed={isDarkMode} className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 text-slate-600 transition hover:bg-slate-50 hover:text-emerald-700">
+              {isDarkMode ? <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4" /><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42" /></svg> : <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20.9 13A9 9 0 0 1 11 3.1 9 9 0 1 0 20.9 13Z" /></svg>}
             </button>
-            <button
-              type="button"
-              onClick={() => { setAdminTab("transactions"); setSelectedTransactionUser(null); }}
-              className={`min-w-0 flex-1 truncate rounded-xl px-2.5 py-2.5 text-xs sm:text-sm font-bold transition sm:px-4 sm:py-3 ${adminTab === "transactions"
-                ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-sm"
-                : "text-slate-600 hover:bg-slate-50"
-                }`}
-            >
-              Transaksi ({adminTransactions.length})
+            <button type="button" onClick={onLogoutClick} title="Keluar" aria-label="Keluar" className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 text-slate-600 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 lg:hidden">
+              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M10 17l5-5-5-5M15 12H3" /><path d="M12 3h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-6" /></svg>
             </button>
           </div>
+        </header>
+
+        <main className="mx-auto max-w-[1500px] space-y-4 px-3 py-4 sm:space-y-5 sm:px-7 sm:py-7 lg:px-9">
+              {adminTab === 'settings' && (
+                <SettingsModal
+                  asPage
+                  isOpen
+                  settingsForm={settingsForm}
+                  settingsError={settingsError}
+                  settingsLoading={settingsLoading}
+                  settings={settings}
+                  setSettingsForm={setSettingsForm}
+                  setSettingsError={setSettingsError}
+                  passwordForm={passwordForm}
+                  setPasswordForm={setPasswordForm}
+                  passwordError={passwordError}
+                  handleUpdateProfile={handleUpdateProfile}
+                  handleUpdatePassword={handleUpdatePassword}
+                  handleUpdatePin={handleUpdatePin}
+                />
+              )}
 
               {/* Admin Dashboard Tab */}
               {adminTab === "dashboard" && (
@@ -419,83 +599,67 @@ export const AdminSection = ({
                   </div>
                 ) : null)}
 
-              {/* Admin Users Tab */}
-              {adminTab === "users" && (
-                <div className="relative rounded-2xl bg-white shadow-soft">
-                  {/* Header with Add User button */}
-                  <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
-                    <p className="text-sm font-semibold text-slate-700">Total: {adminUsers.length} user</p>
-                    <button
-                      id="btn-add-user"
-                      onClick={onAddUserClick}
-                      className="flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-semibold text-white shadow transition hover:bg-emerald-700"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
-                      </svg>
-                      Tambah User
-                    </button>
-                  </div>
-                  {adminLoading && adminUsers.length === 0 && (
-                    <LoadingOverlay message="Memuat data users..." />
+              {/* Admin Accounts Tab */}
+              {adminTab === "admins" && (
+                <div className="relative space-y-5">
+                  {adminLoading && adminUsers.length === 0 ? (
+                    <div className="py-20 text-center">
+                      <LoadingSpinner size="lg" className="mx-auto mb-3" />
+                      <p className="text-sm font-medium text-slate-500">Memuat data akun...</p>
+                    </div>
+                  ) : (
+                    <section className="overflow-hidden rounded-2xl bg-white shadow-soft">
+                      <div className="border-b border-slate-100 px-4 py-3.5">
+                        <h2 className="text-base font-bold text-slate-900">Akun Admin</h2>
+                        <p className="mt-0.5 text-xs text-slate-500">{adminAccounts.length} akun admin</p>
+                      </div>
+                      <AdminUserTable
+                        accounts={adminAccounts}
+                        currentUserId={user.id}
+                        emptyLabel="Belum ada akun admin."
+                        onEditUserClick={onEditUserClick}
+                        onDeleteUserClick={onDeleteUserClick}
+                      />
+                    </section>
                   )}
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-slate-100">
-                      <thead className="bg-slate-50">
-                        <tr>
-                          <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                            Name
-                          </th>
-                          <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                            Email
-                          </th>
-                          <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                            Role
-                          </th>
-                          <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                            Transactions
-                          </th>
-                          <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                            Last Login
-                          </th>
-                          <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                            Created
-                          </th>
-                          <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-slate-500">
-                            Actions
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100 bg-white">
-                        {adminUsers.map((u) => (
-                              <tr key={u.id} className="transition-colors hover:bg-slate-50">
-                                <td className="px-4 py-3 text-sm font-semibold text-slate-900">{u.name}</td>
-                                <td className="px-4 py-3 text-sm text-slate-600">{u.email}</td>
-                                <td className="px-4 py-3">
-                                  <span className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${u.role === 'admin' ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-700'}`}>
-                                    {u.role || 'user'}
-                                  </span>
-                                </td>
-                                <td className="px-4 py-3 text-sm text-slate-600">{u.transaction_count || 0}</td>
-                                <td className="px-4 py-3 text-sm text-slate-500">
-                                  {u.last_login_at ? formatDate(u.last_login_at) : 'Never'}
-                                </td>
-                                <td className="px-4 py-3 text-sm text-slate-500">
-                                  {new Date(u.created_at).toLocaleDateString('id-ID', { timeZone: DEFAULT_DATA_TIMEZONE })}
-                                </td>
-                                <td className="px-4 py-3">
-                                  <div className="flex justify-center gap-2">
-                                    <button onClick={() => onEditUserClick(u)} className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-100">Edit</button>
-                                    {u.id !== user.id && (
-                                      <button onClick={() => onDeleteUserClick(u.id)} className="rounded-full bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-600 transition hover:bg-rose-100">Delete</button>
-                                    )}
-                                  </div>
-                                </td>
-                              </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                </div>
+              )}
+
+              {/* Regular User Accounts Tab */}
+              {adminTab === "users" && (
+                <div className="relative space-y-5">
+                  {adminLoading && adminUsers.length === 0 ? (
+                    <div className="py-20 text-center">
+                      <LoadingSpinner size="lg" className="mx-auto mb-3" />
+                      <p className="text-sm font-medium text-slate-500">Memuat data akun...</p>
+                    </div>
+                  ) : (
+                    <section className="overflow-hidden rounded-2xl bg-white shadow-soft">
+                      <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-3.5">
+                        <div>
+                          <h2 className="text-base font-bold text-slate-900">Pengguna</h2>
+                          <p className="mt-0.5 text-xs text-slate-500">{userAccounts.length} akun user</p>
+                        </div>
+                        <button
+                          id="btn-add-user"
+                          onClick={onAddUserClick}
+                          className="flex shrink-0 items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-semibold text-white shadow transition hover:bg-emerald-700"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                            <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+                          </svg>
+                          Tambah User
+                        </button>
+                      </div>
+                      <AdminUserTable
+                        accounts={userAccounts}
+                        currentUserId={user.id}
+                        emptyLabel="Belum ada akun user."
+                        onEditUserClick={onEditUserClick}
+                        onDeleteUserClick={onDeleteUserClick}
+                      />
+                    </section>
+                  )}
                 </div>
               )}
 
@@ -578,9 +742,10 @@ export const AdminSection = ({
                   )}
                 </div>
               )}
-            </div>
-          )}
-    </>  );
+        </main>
+      </div>
+    </div>
+  );
 };
 
 export default AdminSection;

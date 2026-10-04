@@ -76,37 +76,49 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-4">
+    <div className={isAdmin ? "h-screen overflow-hidden bg-slate-50" : "min-h-screen bg-slate-50 pb-4"}>
       {toast && (
         <div className={`fixed left-4 right-4 top-4 z-50 rounded-2xl px-4 py-3 text-white shadow-2xl transition-all sm:left-auto sm:right-6 sm:top-6 ${toast.type === "error" ? "bg-rose-500/90" : "bg-emerald-500/90"}`}>
           <p className="text-sm font-semibold">{toast.message}</p>
         </div>
       )}
 
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-5 px-3 pt-4 sm:gap-8 sm:px-6 sm:pt-8 lg:px-8">
-        <Header
-          user={user} currentTime={currentTime} isAdminPage={isAdminPage}
-          isDarkMode={isDarkMode} onToggleDarkMode={() => setIsDarkMode((current) => !current)}
-          setIsAdminPage={setIsAdminPage} isMenuOpen={isMenuOpen} setIsMenuOpen={setIsMenuOpen}
-          setIsSettingsOpen={setIsSettingsOpen} handleLogout={handleLogout}
-          setIsConfirmOpen={txHook.setIsConfirmOpen}
-          handleImportExcel={() => txHook.setIsImportFileOpen(true)}
-          handleDownloadExcel={() => txHook.handleDownloadExcel(runningEntries, validatePin, () => txHook.confirmExportWithPin(runningEntries, validatePin))}
-          handleDownloadPdf={() => txHook.handleDownloadPdf(runningEntries, totals, user, validatePin, chartGranularity)}
-          openModal={() => txHook.openModal(null, modalRef)}
+      {isAdmin ? (
+        <AdminSection
+          user={user}
+          currentTime={currentTime}
+          isDarkMode={isDarkMode}
+          onToggleDarkMode={() => setIsDarkMode((current) => !current)}
+          onLogoutClick={handleLogout}
+          adminTab={adminHook.adminTab} setAdminTab={adminHook.setAdminTab}
+          adminStats={adminHook.adminStats} adminUsers={adminHook.adminUsers} adminTransactions={adminHook.adminTransactions}
+          adminLoading={adminHook.adminLoading} adminError={adminHook.adminError}
+          onAddUserClick={() => adminHook.setIsAddUserModalOpen(true)}
+          onEditUserClick={adminHook.handleEditUser}
+          onDeleteUserClick={adminHook.handleDeleteUser}
+          settings={settings}
+          settingsForm={settingsForm} setSettingsForm={setSettingsForm}
+          settingsError={settingsError} setSettingsError={setSettingsError}
+          settingsLoading={settingsLoading}
+          passwordForm={passwordForm} setPasswordForm={setPasswordForm} passwordError={passwordError}
+          handleUpdateProfile={handleUpdateProfile}
+          handleUpdatePassword={handleUpdatePassword}
+          handleUpdatePin={handleUpdatePin}
         />
-
-        {isAdmin ? (
-          <AdminSection
-            user={user}
-            adminTab={adminHook.adminTab} setAdminTab={adminHook.setAdminTab}
-            adminStats={adminHook.adminStats} adminUsers={adminHook.adminUsers} adminTransactions={adminHook.adminTransactions}
-            adminLoading={adminHook.adminLoading} adminError={adminHook.adminError}
-            onAddUserClick={() => adminHook.setIsAddUserModalOpen(true)}
-            onEditUserClick={adminHook.handleEditUser}
-            onDeleteUserClick={adminHook.handleDeleteUser}
+      ) : (
+        <div className="mx-auto flex w-full max-w-6xl flex-col gap-5 px-3 pt-4 sm:gap-8 sm:px-6 sm:pt-8 lg:px-8">
+          <Header
+            user={user} currentTime={currentTime} isAdminPage={isAdminPage}
+            isDarkMode={isDarkMode} onToggleDarkMode={() => setIsDarkMode((current) => !current)}
+            setIsAdminPage={setIsAdminPage} isMenuOpen={isMenuOpen} setIsMenuOpen={setIsMenuOpen}
+            setIsSettingsOpen={setIsSettingsOpen} handleLogout={handleLogout}
+            setIsConfirmOpen={txHook.setIsConfirmOpen}
+            handleImportExcel={() => txHook.setIsImportFileOpen(true)}
+            handleDownloadExcel={() => txHook.handleDownloadExcel(runningEntries, validatePin, () => txHook.confirmExportWithPin(runningEntries, validatePin))}
+            handleDownloadPdf={() => txHook.handleDownloadPdf(runningEntries, totals, user, validatePin, chartGranularity)}
+            openModal={() => txHook.openModal(null, modalRef)}
           />
-        ) : (
+
           <UserDashboard
             totals={totals}
             sortedEntries={sortedEntries}
@@ -117,42 +129,36 @@ export default function App() {
             chartGranularity={chartGranularity}
             setChartGranularity={setChartGranularity}
           />
-        )}
+          <footer className="mb-1 mt-1 text-center text-xs font-semibold text-slate-400 sm:mt-2">
+            © {new Date().getFullYear()}{" "}
+            <a href="https://pilarlabs.id" target="_blank" rel="noopener noreferrer" className="text-slate-400 transition-colors duration-200 hover:text-emerald-500">
+              Pilar Labs
+            </a>
+          </footer>
+        </div>
+      )}
 
-        <AppModals
-          txHook={txHook} adminHook={adminHook}
-          isPinStep={isPinStep} setIsPinStep={setIsPinStep}
-          pin={pin} setPin={setPin}
-          pinError={pinError} setPinError={setPinError}
-          pinMode={pinMode} setPinMode={setPinMode}
-          settings={settings} modalRef={modalRef}
-          handleSubmitTx={handleSubmitTx} handlePinInput={handlePinInput}
-          closeModal={closeModal} backFromPin={backFromPin}
-          confirmResetWithPin={confirmResetWithPin} confirmDeleteWithPin={confirmDeleteWithPin}
-          validatePin={validatePin} runningEntries={runningEntries}
-          resetPinFlow={resetPinFlow}
-          isLogoutConfirmOpen={isLogoutConfirmOpen} setIsLogoutConfirmOpen={setIsLogoutConfirmOpen}
-          confirmLogout={confirmLogout}
-          isSettingsOpen={isSettingsOpen} setIsSettingsOpen={setIsSettingsOpen}
-          settingsForm={settingsForm} setSettingsForm={setSettingsForm}
-          settingsError={settingsError} setSettingsError={setSettingsError}
-          settingsLoading={settingsLoading}
-          passwordForm={passwordForm} setPasswordForm={setPasswordForm} passwordError={passwordError}
-          handleUpdateProfile={handleUpdateProfile} handleUpdatePassword={handleUpdatePassword} handleUpdatePin={handleUpdatePin}
-        />
-      </div>
-
-      <footer className="mx-auto mb-1 mt-5 w-full max-w-6xl px-3 text-center text-xs font-semibold text-slate-400 sm:mt-8 sm:px-6 lg:px-8">
-        © {new Date().getFullYear()}{" "}
-        <a
-          href="https://pilarlabs.id"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-slate-400 hover:text-emerald-500 transition-colors duration-200"
-        >
-          Pilar Labs
-        </a>
-      </footer>
+      <AppModals
+        txHook={txHook} adminHook={adminHook}
+        isPinStep={isPinStep} setIsPinStep={setIsPinStep}
+        pin={pin} setPin={setPin}
+        pinError={pinError} setPinError={setPinError}
+        pinMode={pinMode} setPinMode={setPinMode}
+        settings={settings} modalRef={modalRef}
+        handleSubmitTx={handleSubmitTx} handlePinInput={handlePinInput}
+        closeModal={closeModal} backFromPin={backFromPin}
+        confirmResetWithPin={confirmResetWithPin} confirmDeleteWithPin={confirmDeleteWithPin}
+        validatePin={validatePin} runningEntries={runningEntries}
+        resetPinFlow={resetPinFlow}
+        isLogoutConfirmOpen={isLogoutConfirmOpen} setIsLogoutConfirmOpen={setIsLogoutConfirmOpen}
+        confirmLogout={confirmLogout}
+        isSettingsOpen={isSettingsOpen && !isAdmin} setIsSettingsOpen={setIsSettingsOpen}
+        settingsForm={settingsForm} setSettingsForm={setSettingsForm}
+        settingsError={settingsError} setSettingsError={setSettingsError}
+        settingsLoading={settingsLoading}
+        passwordForm={passwordForm} setPasswordForm={setPasswordForm} passwordError={passwordError}
+        handleUpdateProfile={handleUpdateProfile} handleUpdatePassword={handleUpdatePassword} handleUpdatePin={handleUpdatePin}
+      />
     </div>
   );
 }

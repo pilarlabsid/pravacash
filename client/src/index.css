@@ -63,6 +63,7 @@ html.dark body {
 html.dark .bg-white { background-color: var(--dark-surface); }
 html.dark .bg-slate-50,
 html.dark .bg-slate-50\/80 { background-color: var(--dark-page); }
+html.dark .admin-page .bg-slate-50\/70 { background-color: var(--dark-surface-muted); }
 html.dark .bg-slate-100 { background-color: var(--dark-surface-muted); }
 html.dark .bg-slate-200 { background-color: var(--dark-surface-inset); }
 html.dark .bg-emerald-50 { color: #6ee7b7; background-color: #064e3b; }
